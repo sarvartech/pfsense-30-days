@@ -1,0 +1,25 @@
+# OS metadata
+Thumbs.db
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Virtualization and big images
+*.iso
+*.iso.gz
+*.vmdk
+*.qcow2
+*.ova
+*.ovf
+*.vmem
+
+# Credentials and private keys
+*.pem
+*.key
+*.p12
+*.ovpn
+secrets/
+.env
