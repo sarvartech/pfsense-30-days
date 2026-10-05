@@ -1,95 +1,111 @@
-# 📚 [KUN-03] LECTURE: DHCP Server, Static Mappings, DHCP Options (PXE/NTP) va DHCP Relay
+# 📚 [KUN-03] LECTURE: DHCP Server, Static Mappings, DHCP Options (PXE/NTP) va pfSense ni Markaziy NTP Server Qilish
 
 **Kategoriya:** 1-Hafta: Baza va Virtualizatsiya  
-**Dars Maqsadi:** Ushbu darsda talabalar DHCP Server, Static Mappings, DHCP Options (PXE/NTP) va DHCP Relay bo'yicha to'liq nazariy asoslarni, FreeBSD va pfSense arxitekturasini, tarmoq protokollari standartlarini hamda korxona darajasidagi (Enterprise) qo'llanish amaliyotini o'rganadilar.
+**Maqsad:** Korxonada dinamik IP boshqaruvi (DORA), MAC manzillar orqali statik biriktirish (Static Mappings), DHCP Options (Option 42 NTP, Option 66/67 PXE, Option 43 Wi-Fi), DHCP Relay arxitekturasi hamda **pfSense ni qo'shimcha servis o'rnatmasdan markaziy NTP Server sifatida to'liq sozlash** va foydalanuvchilarga tanitishni o'rganish.
 
 ---
 
 ## 🧭 Mundarija
-1. [Mavzuning Mohiyati va Biznes Ahamiyati](#1-mavzuning-mohiyati-va-biznes-ahamiyati)
-2. [Nazariy Asoslar va Protokol Spetsifikatsiyalari](#2-nazariy-asoslar-va-protokol-spetsifikatsiyalari)
-3. [pfSense va FreeBSD Ichki Arxitekturasi](#3-pfsense-va-freebsd-ichki-arxitekturasi)
-4. [Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili](#4-jismoniy-uskuna-hardware-vs-virtualizatsiya-tahlili)
-5. [Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)](#5-production-xavfsizlik-qoidalari)
-6. [Xulosa va O'z-o'zini Tekshirish Savollari](#6-xulosa-va-savollar)
+1. [DHCP Protokoli va DORA Mexanizmi](#1-dhcp-protokoli-va-dora-mexanizmi)
+2. [Statik IP vs DHCP Reservation (MAC Mappings)](#2-statik-ip-vs-dhcp-reservation)
+3. [DHCP Options Kuchi (PXE, Wi-Fi AP va NTP)](#3-dhcp-options-kuchi)
+4. [pfSense ni Markaziy NTP Server Qilish (Qo'shimcha Paket Shartmi?)](#4-pfsense-ni-markaziy-ntp-server-qilish)
+5. [Nega Tarmoqda Vaqt Sinxronligi Hayotiy Muhim? (Kerberos, SSL, Loglar)](#5-nega-vaqt-sinxronligi-hayotiy-muhim)
+6. [NTP Hijacking: Majburiy NTP Redirect NAT](#6-ntp-hijacking-majburiy-ntp-redirect-nat)
+7. [DHCP Relay Agent (RFC 3046) Qachon Kerak?](#7-dhcp-relay-agent)
+8. [Xulosa va O'z-o'zini Tekshirish](#8-xulosa)
 
 ---
 
-## 1. Mavzuning Mohiyati va Biznes Ahamiyati
+## 1. DHCP Protokoli va DORA Mexanizmi
 
-Zamonaviy korporativ IT infratuzilmasida **DHCP Server, Static Mappings, DHCP Options (PXE/NTP) va DHCP Relay** shunchaki sozlama emas, balki tarmoq xavfsizligi, barqarorligi va biznes jarayonlarining uzluksizligini (Business Continuity) ta'minlovchi strategik element hisoblanadi. 
+DHCP (Dynamic Host Configuration Protocol - RFC 2131) tarmoqdagi mijozlarga avtomatik tarzda IP manzil, tarmoq niqobi (Subnet Mask), standart shlyuz (Default Gateway) va DNS serverlarini taqsimlaydi.
 
-Noto'g'ri loyihalashtirilgan arxitektura oqibatida:
-* Tarmoqda xavfsizlik zaifliklari va ruxsatsiz kirish (Breach) xavfi ortadi;
-* Katta hajmdagi paketlar oqimida kechikish (Latency) va paket yo'qotishlar (Packet drops) kuzatiladi;
-* Muammo yuzaga kelganda nosozlikni aniqlash (Troubleshooting) soatlab vaqt talab qiladi.
+Bu jarayon UDP 67 (Server) va UDP 68 (Client) portlarida **4 ta bosqichda (DORA)** amalga oshiriladi:
 
-Ushbu ma'ruzaning maqsadi — sizga har bir tugma va har bir buyruq ortida qanday jarayon yotganini chuqur tushuntirishdir.
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Mijoz Kompyuter (Yangi ulangan)
+    participant pfSense as pfSense DHCP Server (10.10.10.1)
 
----
-
-## 2. Nazariy Asoslar va Protokol Spetsifikatsiyalari
-
-### 1. DHCP (Dynamic Host Configuration Protocol) 4 bosqichi: DORA (Discover, Offer, Request, Acknowledge) UDP 67/68 portlarida.
-
-Ushbu bo'limda DHCP (Dynamic Host Configuration Protocol) 4 bosqichi mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 2. Static DHCP Mapping (MAC Reservation): IP manzillarini MAC adresga bog'lash va nima uchun serverlarga statik emas, aynan DHCP reservation berish afzalroq?
-
-Ushbu bo'limda Static DHCP Mapping (MAC Reservation) mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 3. DHCP Options arxitekturasi: Option 42 (NTP server), Option 66/67 (PXE TFTP Server va Bootfile), Option 43 (UniFi / Aruba Access Point Controller IP).
-
-Ushbu bo'limda DHCP Options arxitekturasi mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 4. DHCP Relay Agent (RFC 3046): Router boshqa broadcast domenidagi DHCP so'rovlarni markaziy DHCP serverga Unicast qilib yetkazishi.
-
-Ushbu bo'limda DHCP Relay Agent (RFC 3046) mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 5. IP Conflict Detection: ARP probing va bepul manzillarni tekshirish (Ping check before offer).
-
-Ushbu bo'limda IP Conflict Detection mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-
+    Client->>pfSense: 1. DHCP Discover (Broadcast: 255.255.255.255:67)<br/>"Tarmoqda kimdir bormi? Menga IP kerak!"
+    pfSense->>Client: 2. DHCP Offer (Unicast/Broadcast: 10.10.10.100)<br/>"Men borman! Mana senga 10.10.10.100 IP manzili"
+    Client->>pfSense: 3. DHCP Request (Broadcast)<br/>"Rahmat, men 10.10.10.100 ni qabul qilmoqchiman!"
+    pfSense->>Client: 4. DHCP Acknowledge (ACK)<br/>"Kelishdik! IP ijara muddati (Lease) boshlandi."
+```
 
 ---
 
-## 3. pfSense va FreeBSD Ichki Arxitekturasi
+## 2. Statik IP vs DHCP Reservation (MAC Mappings)
 
-pfSense FreeBSD operatsion tizimiga asoslanganligi sababli, barcha tarmoq amallari FreeBSD yadrosining yuqori unumdor tarmoq steki orqali bajariladi:
-* **Kernel & User Space:** Paketlarni qayta ishlash to'g'ridan-to'g'ri yadroda (`pf`, `dummynet`, `netmap`, `if_wg`) kechadi, foydalanuvchi interfeysi (PHP WebGUI) esa faqat konfiguratsiyani (`config.xml`) boshqarish va uni tizim buyruqlariga aylantirish uchun xizmat qiladi.
-* **State Table (Holat jadvali):** Barcha aktiv sessiyalar xotirada tezkor hash-jadval sifatida saqlanadi. Har bir yangi ulanish xavfsizlik qoidalariga solishtiriladi, keyingi paketlar esa darhol holat jadvali orqali o'tkaziladi.
-* **Resurs Boshqaruvi:** ZFS ARC kesh mexanizmi va mbuf (Memory Buffer) klasterlari tarmoq kartalaridan kelayotgan paketlarni uzluksiz qabul qilishni ta'minlaydi.
+Ko'plab boshlovchi muhandislar serverlar, printerlar va tarmoq uskunalariga kompyuterning o'zidan qo'lda statik IP kiritib chiqishadi. Bu usul kelajakda katta muammolarga olib keladi:
+* DNS server yoki Gateway o'zgarsa, 50 ta serverga birma-bir kirib IP sozlamasini o'zgartirish kerak bo'ladi.
+* IP konfliktlar (ikki kishiga bitta IP tushib qolishi) ko'payadi.
 
----
-
-## 4. Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili
-
-Talabalar ushbu texnologiyani ikki xil muhitda qo'llashlari mumkin:
-
-| Parametr | Jismoniy Uskuna (Real Hardware pfSense) | Virtualizatsiya (Proxmox VE / VMware) |
-|---|---|---|
-| **Tarmoq Kartalari** | Intel I210/I225/I350 (`igb`, `igc`) yoki Realtek (`re`) | Virtual interfeyslar (`virtio-net`, `vmxnet3`, `e1000`) |
-| **Paket Kechikishi** | Minimal (0.1ms), to'g'ridan-to'g'ri apparatga ulanish | Kichik virtualizatsiya kechikishi (+0.2-0.5ms) |
-| **VLAN Boshqaruvi** | 802.1Q signali to'g'ridan-to'g'ri fizik switchga ketadi | Gipervizor virtual bridge'ida VLAN-aware bo'lishi shart |
-| **Moslashuvchanlik** | Uskunaga bog'liq, ko'chirish qiyin | Snapshot, klonlash va tezkor zaxira olish imkoniyati |
+**To'g'ri Korporativ Yondashuv: Static DHCP Mappings (MAC Reservation):**
+* Serverning o'zi DHCP rejimida turadi.
+* pfSense DHCP serverida uning MAC manzili (`00:1a:2b:3c:4d:5e`) qat'iy `10.10.20.50` manziliga bog'lab qo'yiladi.
+* Shlyuz yoki DNS o'zgarsa, pfSense da 1 ta sozlama o'zgartiriladi va barcha serverlar avtomat yangi konfiguratsiyani oladi!
 
 ---
 
-## 5. Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)
+## 3. DHCP Options Kuchi
 
-1. **Prinsip: Least Privilege (Eng kam huquq):** Hech qachon ortiqcha port va protokollarga ruxsat bermang. Standart holatda barcha kirish taqiqlangan bo'lishi lozim.
-2. **Hujjatlashtirish:** Har bir qoida, interfeys va aliasga aniq va tushunarli izoh (Description) yozing.
-3. **Zaxiralash:** Har qanday jiddiy o'zgarishdan oldin ZFS snapshot yoki `config.xml` zaxira nusxasini oling.
-4. **Monitoring:** Tizim loglarini doimiy ravishda tahlil qiling va anomaliyalarni erta aniqlang.
+DHCP mijozga faqat IP va Gateway bermaydi. RFC 2132 bo'yicha yuzlab maxsus parametrlar (Options) mavjud:
+* **Option 42 (NTP Servers):** Tarmoqdagi kompyuterlarga qaysi vaqt serveridan sinxronlanishni avtomat bildiradi.
+* **Option 66 va 67 (PXE Boot):** Tarmoq orqali Windows/Linux o'rnatish uchun TFTP Server IP si (Option 66) va yuklanuvchi fayl nomi (`pxelinux.0` yoki `bootx64.efi` - Option 67).
+* **Option 43 (Vendor Specific):** UniFi yoki Aruba Wi-Fi Access Point larga controller IP manzilini tanitish.
 
 ---
 
-## 6. Xulosa va O'z-o'zini Tekshirish Savollari
+## 4. pfSense ni Markaziy NTP Server Qilish (Qo'shimcha Paket Shartmi?)
 
-* Ushbu mavzudagi asosiy protokol qaysi RFC standartiga asoslangan?
-* Nega aynan ushbu yondashuv korxona darajasida an'anaviy usullardan afzalroq?
-* Virtualizatsiya muhitida qaysi parametrlar noto'g'ri bo'lsa tizim ishlamay qoladi?
-* Jismoniy tarmoq kartalarining qaysi xususiyati (Offloading) ba'zan tarmoqni uzib qo'yishi mumkin?
+> [!IMPORTANT]
+> **Foydalanuvchi Savoli 1:** NTP server sifatida pfSense ni foydalanuvchilarga tanitsa bo'ladimi?  
+> **Javob:** **HA, ALBATTA!** pfSense ni butun korxona (xodimlar kompyuterlari, serverlar, IP kameralar, domofonlar, printerlar) uchun yagona ishonchli markaziy NTP server sifatida tanitish nafaqat mumkin, balki xavfsizlik va barqarorlik uchun **ENG TO'G'RI STANDARTDIR!**
 
-Endi nazariyani mustahkamlash uchun **[LAB YO'RIQNOMASI](lab.md)** ga o'ting va amaliy laboratoriya ishini bajaring!
+> [!IMPORTANT]
+> **Foydalanuvchi Savoli 2:** pfSense da biror qo'shimcha servis (package) o'rnatish shartmi?  
+> **Javob:** **YO'Q, MUTLAQO SHART EMAS!**  
+> pfSense FreeBSD ning rasmiy **`OpenNTPD` / `ntpd`** servisi bilan tizim ichiga to'liq integratsiya qilingan holda keladi (`Services -> NTP`). Hech qanday "Package Manager" dan paket yuklab o'rnatish talab etilmaydi!
+
+### pfSense NTP qanday ishlaydi?
+1. pfSense o'zi tashqi global atomik soatlarga (masalan `0.pfsense.pool.ntp.org`, `time.cloudflare.com`) bog'lanadi (Stratum 2).
+2. O'zining ichki vaqtini millisoniyalargacha aniq qilib oladi.
+3. Ichki tarmoqdagi barcha mijozlarga o'zi **Stratum 3 NTP Server** sifatida UDP port 123 orqali vaqt tarqatadi.
+
+---
+
+## 5. Nega Tarmoqda Vaqt Sinxronligi Hayotiy Muhim?
+
+Tarmoqda vaqtning bir xil bo'lmasligi quyidagi jiddiy avariyalarga sabab bo'ladi:
+1. **Microsoft Active Directory & Kerberos:** Windows da xodim kompyuteri va Domain Controller o'rtasida vaqt farqi **5 daqiqadan (300 soniya)** oshsa, Kerberos chiptasi avtomat bekor qilinadi. Xodim o'z kompyuteriga kira olmay qoladi!
+2. **TLS / HTTPS va SSL Sertifikatlar:** Sertifikatlar boshlanish va tugash vaqtiga ega. Agar kompyuterda soat 1 kunga orqada bo'lsa, xodim barcha saytlarda "Sertifikat muddati o'tgan" xatosini ko'radi.
+3. **Kiberxavfsizlik va Loglar (Incident Response):** Tarmoqda kiberhujum yuz berganda, firewall logi, switch logi va server logi millisoniyagacha bir xil vaqtda bo'lmasa, hujumchi qachon qayerga kirganini tergov qilib bo'lmaydi.
+4. **VPN Ulanishlari:** IPsec IKEv2 va OpenVPN sertifikatlari vaqtga o'ta sezgirdir.
+
+---
+
+## 6. NTP Hijacking: Majburiy NTP Redirect NAT
+
+Ko'plab IoT qurilmalar (kameralar, aqlli televizorlar) yoki ba'zi operatsion tizimlar DHCP Option 42 ni e'tiborsiz qoldirib, o'zining ichiga qotirilgan tashqi serveriga (`time.windows.com` yoki `pool.ntp.org`) chiqishga urinadi.
+
+**Professional Yechim (NTP Redirect Port Forward):**
+pfSense da shunday NAT Port Forward qoidasi yoziladiki:
+* *Har qanday ichki IP dan tashqaridagi har qanday IP ning UDP 123 portiga ketayotgan so'rov tutib olinadi va pfSense ning o'ziga (`127.0.0.1`) majburiy yo'naltiriladi!*
+Natijada barcha qurilmalar o'zlari bilmagan holda pfSense dan vaqt olishga majbur bo'ladi.
+
+---
+
+## 7. DHCP Relay Agent (RFC 3046) Qachon Kerak?
+
+Agar kompaniyada 10 ta alohida bino bo'lsa va har bir binoda alohida L3 router tursa:
+* DHCP Discover paketlari L2 Broadcast bo'lgani uchun boshqa tarmoqqa o'ta olmaydi.
+* Har bir binoga yangi DHCP server qo'ymaslik uchun, o'sha binodagi routerda **DHCP Relay** yoqiladi.
+* Relay agent broadcast paketni ushlab, uni Unicast qilib bosh pfSense DHCP serveriga (`10.10.10.1`) yetkazadi.
+
+---
+
+## 8. Xulosa
+pfSense DHCP va NTP xizmatlari hech qanday ortiqcha dastur o'rnatmasdan turib butun korporativ tarmoqning vaqt, IP va provisioning poydevorini to'liq ta'minlay oladi.

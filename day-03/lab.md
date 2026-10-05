@@ -1,115 +1,129 @@
-# 🛠️ [KUN-03] LAB QO'LLANMASI: DHCP Server, Static Mappings, DHCP Options (PXE/NTP) va DHCP Relay
+# 🛠️ [KUN-03] LAB: DHCP Server, Static Mappings va pfSense ni Markaziy NTP Server Qilib Sozlash
 
-**Mavzu:** DHCP Server, Static Mappings, DHCP Options (PXE/NTP) va DHCP Relay  
-**Bosqich:** 1-Hafta: Baza va Virtualizatsiya  
-**Nazariy Ma'ruza:** [Lecture darsini o'qish](lecture.md)
-
----
-
-## 🎯 1. Real Korxona Muammosi (Business Problem Statement)
-
-> **Real Muammo:** Korxonada yangi ulangan printerlar va serverlar IP manzili har rebootda o'zgarib ketmoqda, bu esa servislar to'xtashiga sabab bo'lmoqda. Shu bilan birga tarmoqda vaqt sinxronizatsiyasi (NTP) buzilgan va tarmoq orqali OS o'rnatish (PXE Boot) yo'lga qo'yilmagan.
-
-Ushbu laboratoriya mashg'ulotida siz ushbu real muammoni to'liq hal qilasiz, tizimni xalqaro standartlar asosida xavfsiz va barqaror qilib sozlaysiz.
+**Mavzu:** Dinamik IP tarqatish, Static MAC Reservation, DHCP Options va pfSense NTP orqali barcha mijozlar vaqtini majburiy sinxronlash  
+**Nazariya:** [Lecture darsini o'qish](lecture.md)
 
 ---
 
-## 🗺️ 2. Laboratoriya Topologiyasi va IP Sxemasi
+## 🎯 1. Real Korxona Muammosi
+
+> **Biznes Muammo:** Kompaniyaning Windows serverlari va xodimlarning kompyuterlarida soat har xil ko'rsatmoqda (ba'zilarida 7 daqiqa farq bor). Oqibatda xodimlar Active Directory domeniga kira olmayapti (Kerberos xatosi), veb-brauzerlar SSL sertifikat xatolarini bermoqda va IT bo'limi kiberhodisalarni tekshirayotganda loglardagi vaqt chalkashib ketgan. Shuningdek, tarmoqdagi fayl server va printerlar har safar qayta yoqilganda yangi IP olib, butun ofis ishini to'xtatmoqda.
+> 
+> **Vazifa:** pfSense ning o'zida mavjud bo'lgan ichki NTP servisini yoqish, hech qanday qo'shimcha paket o'rnatmasdan turib uni butun tarmoqqa yagona vaqt serveri qilib berish, DHCP orqali xodimlarga avtomat tarqatish va serverlarga qat'iy statik MAC reservation biriktirish.
+
+---
+
+## 🗺️ 2. Topologiya va IP Rejasi
 
 ```mermaid
-flowchart LR
-    subgraph WAN_ZONE["Tashqi Tarmoq (WAN)"]
-        ISP["Internet Provayder (Uplink)"]
-    end
-
-    subgraph PFSENSE["pfSense Firewall (Lab Gateway)"]
-        direction TB
-        FW["pfSense 2.7.2 CE\nIP: 10.10.10.1 / WAN: DHCP"]
-    end
-
-    subgraph INTERNAL["Ichki Tarmoq (Clients & Servers)"]
-        SRV["Server (Ubuntu/Nginx)\nIP: 10.10.20.x"]
-        PC["Admin / Client PC\nIP: 10.10.10.x"]
-    end
-
-    ISP === PFSENSE
-    PFSENSE === SRV
-    PFSENSE === PC
+flowchart TD
+    INTERNET["Tashqi Internet (NTP Hovuzlari)"] -->|WAN| PFS["pfSense Shlyuz & NTP Server\nLAN IP: 10.10.10.1\nNTP Port: UDP 123"]
+    PFS -->|DHCP Option 42: 10.10.10.1| PC1["Admin PC (10.10.10.50)"]
+    PFS -->|Static MAC Lease: 10.10.20.20| SRV["Fayl Server (srv-master.corp)"]
+    PFS -->|NTP Redirect NAT (UDP 123)| IOT["IoT Kameralar & Noutbuklar"]
 ```
 
-### 📋 Laboratoriya IP Jadvali
+---
 
-| Interfeys / Qurilma | Turi | IP Manzil / Subnet | Izoh |
-|---|---|---|---|
-| `WAN` | Tashqi | Provayder IP (DHCP / Static) | Internetga chiqish |
-| `LAN` (MGMT) | Ichki | `10.10.10.1/24` | Boshqaruv va admin tarmog'i |
-| `DMZ / SERVERS` | Segment | `10.10.20.1/24` | Korporativ serverlar |
-| `Mijoz Mashinasi` | Test Client | `10.10.10.50` (DHCP) | Sinov o'tkazuvchi kompyuter |
+## ⚙️ 3. Qadam-baqadam Amaliy Sozlash
+
+### 1-Qadam: pfSense Ichki NTP Servisini Faollashtirish (Qo'shimcha Paket Shart Emas!)
+1. pfSense WebGUI da: `Services -> NTP` ga kiring.
+2. **Interface:** `LAN` (yoki barcha ichki interfeyslar: `LAN`, `DMZ`, `Localhost`) ni tanlang.
+3. **NTP Time Servers:**
+   * Server 1: `0.pfsense.pool.ntp.org`
+   * Server 2: `1.pfsense.pool.ntp.org`
+   * Server 3: `time.cloudflare.com`
+4. **NTP Graphs:** Log va grafiklar uchun katakchani yoqing.
+5. Saqlang va **Apply Changes** qiling.
+
+### 2-Qadam: DHCP Serverni Sozlash va Option 42 (NTP) ni Tanitish
+1. `Services -> DHCP Server -> LAN` bo'limiga kiring.
+2. **Enable:** `Enable DHCP server on LAN interface` katakchasini yoqing.
+3. **Subnet:** `10.10.10.0/24`.
+4. **Range:** `10.10.10.100` dan `10.10.10.200` gacha (Dinamik mijozlar uchun).
+5. **Gateway:** `10.10.10.1`.
+6. **DNS Servers:** `10.10.10.1`.
+7. **NTP Servers (Kritik Qadam):**
+   * Server 1 maydoniga: `10.10.10.1` deb yozing!
+   *(Bu parametr barcha mijozlarga DHCP Option 42 orqali pfSense ni vaqt serveri sifatida uzatadi).*
+8. Saqlang.
+
+### 3-Qadam: Serverlar uchun DHCP Static Mapping (MAC Reservation)
+1. Xuddi shu `Services -> DHCP Server -> LAN` sahifasining eng pastiga tushiring.
+2. `DHCP Static Mappings for this Interface` bloki yonidagi **Add** tugmasini bosing:
+   * MAC Address: `00:0c:29:ab:cd:ef` (Serveringizning haqiqiy MAC manzili).
+   * IP Address: `10.10.10.20` *(Diapazondan tashqarida bo'lishi shart!)*.
+   * Hostname: `srv-master`.
+   * Description: `Asosiy Korporativ Server`.
+3. Saqlang va Apply Changes qiling.
+
+### 4-Qadam: NTP Hijacking (Majburiy Redirect NAT Qoidasi)
+Ba'zi qurilmalar DHCP Option 42 ga bo'ysunmay, tashqi internetdagi boshqa NTP serverlarga chiqishga urinadi. Biz barcha UDP 123 so'rovlarini pfSense ga majburlab buramiz:
+1. `Firewall -> NAT -> Port Forward` ga kiring, **Add** bosing:
+   * Interface: `LAN`
+   * Protocol: `UDP`
+   * Source: `LAN net`
+   * Destination: `Invert Match` [x] -> Destination: `LAN address` (pfSense ning o'zidan boshqa har qanday manzilga ketsa)
+   * Destination Port Range: from `123 (NTP)` to `123 (NTP)`
+   * Redirect Target IP: `127.0.0.1` (pfSense ning o'zi)
+   * Redirect Target Port: `123`
+   * Description: `Redirect all outbound NTP to local pfSense NTP`
+2. Saqlang va **Apply Changes** qiling.
 
 ---
 
-## 🖥️ 3. Talabalar uchun Laboratoriya Muhiti (Ikkala Variant)
+## 🧪 4. Verifikatsiya va Tekshirish (Testing & CLI)
 
-Talaba o'zida mavjud imkoniyatga qarab **Variant A** yoki **Variant B** dan birini tanlaydi:
-
-### 🔹 VARIANT A: Real Jismoniy pfSense (Hardware Appliance / Mini-PC)
-* **Hardware:** Fizik tarmoqda bir nechta qurilma (noutbuk, telefon, Wi-Fi AP) ni switchga ulang.
-* Wi-Fi Access Point (masalan Ubiquiti UniFi yoki MikroTik) ulangan bo'lsa, pfSense DHCP Option 43 orqali AP ga kontrollerni avtomat taniting.
-
-### 🔹 VARIANT B: Virtual Server pfSense (Proxmox VE / VMware Workstation)
-* **Proxmox / VMware:** Ichki LAN (vmbr1 yoki VMnet1) da ikkita VM ishga tushiring: 1 ta Ubuntu Server, 1 ta Alpine Linux.
-* Ularning MAC manzillarini virtual mashina sozlamalaridan aniqlab oling.
-
----
-
-## ⚙️ 4. Bosqichma-bosqich Amaliy Sozlash Qo'llanmasi (Step-by-Step)
-
-1. **Qadam:** `Services` -> `DHCP Server` -> `LAN` ga kirish. Subnet: `10.10.10.0/24`, Range: `10.10.10.100` dan `10.10.10.200` gacha belgilash.
-2. **Qadam:** Gateway: `10.10.10.1`, DNS Server: `10.10.10.1` (pfSense o'zi).
-3. **Qadam:** NTP Server maydoniga `10.10.10.1` manzilini kiritish (Option 42).
-4. **Qadam:** `DHCP Static Mappings` bo'limida serveringiz MAC manzilini kiritib, unga qat'iy `10.10.10.20` IP sini va `srv-master.local` hostname berish.
-5. **Qadam:** `Services` -> `NTP` sozlamalariga kirib, pfSense NTP serverini yoqish va tashqi hovuz sifatida `pool.ntp.org` ni belgilash.
-6. **Qadam:** Mijoz VM yoki kompyuterda IP manzilni yangilash (`dhclient -v` yoki `ipconfig /renew`).
-
-
----
-
-## 🧪 5. Verifikatsiya va Tekshirish (Testing & CLI)
-
-Har bir amaliyot tugagach, quyidagi buyruqlar yordamida natijani qat'iy tekshiring:
-
-**Aktiv ijaralarni va statik bog'lanishlarni ko'rish:**
+### 1. pfSense ning O'zida NTP Holatini Tekshirish:
+pfSense konsolida yoki SSH da quyidagi buyruqni bering:
 ```bash
-Status -> DHCP Leases
+ntpq -p
+```
+*Kutilgan Natija:* Tashqi hovuzlar ro'yxati chiqadi, ularning birining oldida yulduzcha `*` belgisi turishi (faol manba), `offset` 1-2 millisoniyadan kam va `jitter` minimal bo'lishi lozim:
+```text
+     remote           refid      st t when poll reach   delay   offset  jitter
+==============================================================================
+*time.cloudflare 10.28.12.221     3 u   45   64  377   18.234   +0.142   0.085
 ```
 
-**Mijoz kompyuterdan pfSense NTP serveri ishlayotganini tekshirish:**
+### 2. Status WebGUI da Ko'rish:
+* `Status -> NTP` sahifasiga kiring.
+* Status: **Active**, Stratum: **3**, Server Time aniq ko'rinishi kerak.
+
+### 3. Windows Mijozida Vaqtni Tekshirish:
+Windows kompyuteringizda PowerShell / CMD ni oching:
+```cmd
+w32tm /stripchart /computer:10.10.10.1 /samples:3 /dataonly
+```
+*Natija:* pfSense javob qaytaradi va offset `d: +00.000123s` (millisoniya) bo'lib chiqadi.
+
+### 4. Linux Mijozida Tekshirish:
 ```bash
-ntpdate -q 10.10.10.1
+sntp 10.10.10.1
+# yoki
+chronyc sources
 ```
 
-**pfSense konsolida DORA jarayonini tutib ko'rish:**
+### 5. DORA Jarayoni va DHCP Option 42 ni Wireshark/tcpdump orqali Tutish:
+pfSense konsolida DORA paketlarini kuzating:
 ```bash
-tcpdump -i vtnet1 -n port 67 or port 68
+tcpdump -i vtnet1 -n -vvv port 67 or port 68
 ```
-
-**Statik xostnomi DNS orqali yechilayotganini tekshirish:**
-```bash
-ping srv-master.local
-```
-
-
+Mijozda `ipconfig /renew` qiling. DHCP ACK paketining ichida `NTP Servers Option 42: 10.10.10.1` parametri o'tganini ko'rasiz!
 
 ---
 
-## 🚨 6. Eng Ko'p Uchraydigan Xatolar va Troubleshooting
+## 🚨 5. Eng Ko'p Uchraydigan Xatolar va Troubleshooting
 
-* ⚠️ **Muammo: Mijoz boshqa IP olmoqda (masalan 192.168.x.x). Yechim: Tarmoqda 'Rogue DHCP' (ikkilamchi DHCP server, masalan uy routeri) bor-yo'qligini tekshiring.**
-* ⚠️ **Muammo: Static mapping IP diapazon ichida bo'lsa xato beradi. Yechim: pfSense qoidasi bo'yicha Static IP diapazondan (100-200) tashqarida bo'lishi kerak (masalan 10.10.10.20).**
-
+* ⚠️ **Muammo: pfSense NTP status 'Unreach/Pending' bo'lib turibdi.**  
+  *Yechim:* pfSense ning o'zi internetga chiqa olyaptimi? WAN firewall qoidasida yoki Outbound NAT da pfSense ning o'zidan chiquvchi UDP 123 ga ruxsat borligiga ishonch hosil qiling.
+* ⚠️ **Muammo: Static DHCP Mapping qo'shganda 'The IP address must not lie within its configured range' xatosi.**  
+  *Yechim:* pfSense qoidasi bo'yicha Statik manzil dinamik oraliqdan (masalan 10.10.10.100 - 200) tashqarida bo'lishi shart (masalan `10.10.10.20` yoki `10.10.10.50`).
 
 ---
 
-## 🏆 7. Mustaqil Amaliy Topshiriq (Student Challenge / Homework)
+## 🏆 6. Mustaqil Amaliy Topshiriq (Student Challenge)
 
-> 📝 **Vazifa:** DHCP Option 66 (TFTP Server: 10.10.10.50) va Option 67 (Bootfile: pxelinux.0) parametrlarini sozlang va Wireshark orqali DHCP Offer paketida ushbu optionlar kelganini tekshiring.
+1. `Services -> DHCP Server` da **DHCP Option 66** (TFTP Server) ga `10.10.10.1` va **DHCP Option 67** (Bootfile Name) ga `pxelinux.0` parametrlarini kiriting.
+2. Mijoz kompyuteridan ushbu optionlar qabul qilinganligini Wireshark orqali tekshiring.
