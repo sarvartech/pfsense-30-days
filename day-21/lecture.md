@@ -1,95 +1,80 @@
-# 📚 [KUN-21] LECTURE: HAProxy Reverse Proxy: SSL Offloading, Load Balancing va Health Checks
+# 📚 [KUN-21] LECTURE: Enterprise HAProxy Reverse Proxy, SSL Offloading va CARP Integratsiyasi
 
 **Kategoriya:** 3-Hafta: Kiberxavfsizlik, UTM, QoS va HA  
-**Dars Maqsadi:** Ushbu darsda talabalar HAProxy Reverse Proxy: SSL Offloading, Load Balancing va Health Checks bo'yicha to'liq nazariy asoslarni, FreeBSD va pfSense arxitekturasini, tarmoq protokollari standartlarini hamda korxona darajasidagi (Enterprise) qo'llanish amaliyotini o'rganadilar.
+**Maqsad:** Korxonaning web-servislari, API serverlari va portallarini tashqi dunyoga xavfsiz taqdim etish, millionlab so'rovlarni bir nechta backend serverlarga aqlli taqsimlash (Load Balancing), SSL sertifikatlarni markazlashgan holda boshqarish (SSL Offloading) va HAProxy ni CARP klasteri bilan integratsiya qilish.
 
 ---
 
 ## 🧭 Mundarija
-1. [Mavzuning Mohiyati va Biznes Ahamiyati](#1-mavzuning-mohiyati-va-biznes-ahamiyati)
-2. [Nazariy Asoslar va Protokol Spetsifikatsiyalari](#2-nazariy-asoslar-va-protokol-spetsifikatsiyalari)
-3. [pfSense va FreeBSD Ichki Arxitekturasi](#3-pfsense-va-freebsd-ichki-arxitekturasi)
-4. [Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili](#4-jismoniy-uskuna-hardware-vs-virtualizatsiya-tahlili)
-5. [Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)](#5-production-xavfsizlik-qoidalari)
-6. [Xulosa va O'z-o'zini Tekshirish Savollari](#6-xulosa-va-savollar)
+1. [Reverse Proxy Nima va U Nega Kerak?](#1-reverse-proxy-nima)
+2. [HAProxy Arxitekturasi: Frontend, Backend va ACLs](#2-haproxy-arxitekturasi)
+3. [SSL/TLS Offloading va HTTP/2 Unumdorligi](#3-ssl-offloading)
+4. [Yuklamani Taqsimlash Algoritmlari (Load Balancing Algorithms)](#4-algoritmlar)
+5. [Salomatlik Tekshiruvlari (Health Checks)](#5-health-checks)
+6. [HAProxy va CARP Klasteri Integratsiyasi](#6-haproxy-va-carp)
+7. [Xulosa](#7-xulosa)
 
 ---
 
-## 1. Mavzuning Mohiyati va Biznes Ahamiyati
+## 1. Reverse Proxy Nima va U Nega Kerak?
 
-Zamonaviy korporativ IT infratuzilmasida **HAProxy Reverse Proxy: SSL Offloading, Load Balancing va Health Checks** shunchaki sozlama emas, balki tarmoq xavfsizligi, barqarorligi va biznes jarayonlarining uzluksizligini (Business Continuity) ta'minlovchi strategik element hisoblanadi. 
+An'anaviy port forward qilinganda, bitta tashqi 443 portini faqat bitta ichki serverga yo'naltirish mumkin. Agar kompaniyada 10 ta web-sayt bo'lsa (`crm.firma.uz`, `api.firma.uz`, `portal.firma.uz`), har biriga alohida oq IP sotib olish kerak bo'ladi.
+**HAProxy Reverse Proxy:**
+* Barcha tashqi so'rovlarni yagona 80/443 portida qabul qiladi.
+* HTTP sarlavhasidagi domenni (`Host: crm.firma.uz`) o'qiydi.
+* So'rovni tegishli ichki serverga xavfsiz uzatadi.
+* Backend serverlarning haqiqiy IP manzillarini tashqi dunyodan yashiradi (Xavfsizlik pardasi).
 
-Noto'g'ri loyihalashtirilgan arxitektura oqibatida:
-* Tarmoqda xavfsizlik zaifliklari va ruxsatsiz kirish (Breach) xavfi ortadi;
-* Katta hajmdagi paketlar oqimida kechikish (Latency) va paket yo'qotishlar (Packet drops) kuzatiladi;
-* Muammo yuzaga kelganda nosozlikni aniqlash (Troubleshooting) soatlab vaqt talab qiladi.
-
-Ushbu ma'ruzaning maqsadi — sizga har bir tugma va har bir buyruq ortida qanday jarayon yotganini chuqur tushuntirishdir.
-
----
-
-## 2. Nazariy Asoslar va Protokol Spetsifikatsiyalari
-
-### 1. Reverse Proxy nima? Mijozlar va serverlar o'rtasida turib, so'rovlarni qabul qiluvchi va ichki serverlarga aqlli yo'naltiruvchi shlyuz.
-
-Ushbu bo'limda Reverse Proxy nima? Mijozlar va serverlar o'rtasida turib, so'rovlarni qabul qiluvchi va ichki serverlarga aqlli yo'naltiruvchi shlyuz. mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 2. HAProxy (High Availability Proxy) unumdorligi: Voqealarga asoslangan (Event-driven) asinxron arxitektura, millionlab so'rovlarni minimal CPU bilan yechish.
-
-Ushbu bo'limda HAProxy (High Availability Proxy) unumdorligi mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 3. Load Balancing Algoritmlari: Round Robin (navbatma-navbat), Least Connections (eng kam yuklanganiga), Source IP Hash (bitta mijoz bitta serverga bog'lanishi).
-
-Ushbu bo'limda Load Balancing Algoritmlari mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 4. SSL/TLS Offloading (Termination): Og'ir shifrlash/yechish jarayonini HAProxy o'z bo'yniga oladi, ichki serverlar esa yengil HTTP da ishlab resurs tejaydi.
-
-Ushbu bo'limda SSL/TLS Offloading (Termination) mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 5. Health Checking (Salomatlik tekshiruvi): Har 2 soniyada backend serverga HTTP GET so'rov yuborish; agar 200 OK qaytmasa, uni rotatsiyadan darhol chiqarib tashlash.
-
-Ushbu bo'limda Health Checking (Salomatlik tekshiruvi) mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-
+```mermaid
+flowchart LR
+    USERS["Tashqi Foydalanuvchilar
+(Internet)"] -->|HTTPS: 443| VIP["CARP Virtual IP: 203.0.113.1"]
+    VIP --> HAPROXY["HAProxy Frontend
+(SSL Offloading & ACL)"]
+    
+    HAPROXY -->|Host: crm.company.uz| BE_CRM["Backend: CRM Cluster
+SRV-01: 10.10.20.11
+SRV-02: 10.10.20.12"]
+    HAPROXY -->|Host: api.company.uz| BE_API["Backend: API Cluster
+API-01: 10.10.20.21
+API-02: 10.10.20.22"]
+```
 
 ---
 
-## 3. pfSense va FreeBSD Ichki Arxitekturasi
+## 2. HAProxy Arxitekturasi: Frontend, Backend va ACLs
 
-pfSense FreeBSD operatsion tizimiga asoslanganligi sababli, barcha tarmoq amallari FreeBSD yadrosining yuqori unumdor tarmoq steki orqali bajariladi:
-* **Kernel & User Space:** Paketlarni qayta ishlash to'g'ridan-to'g'ri yadroda (`pf`, `dummynet`, `netmap`, `if_wg`) kechadi, foydalanuvchi interfeysi (PHP WebGUI) esa faqat konfiguratsiyani (`config.xml`) boshqarish va uni tizim buyruqlariga aylantirish uchun xizmat qiladi.
-* **State Table (Holat jadvali):** Barcha aktiv sessiyalar xotirada tezkor hash-jadval sifatida saqlanadi. Har bir yangi ulanish xavfsizlik qoidalariga solishtiriladi, keyingi paketlar esa darhol holat jadvali orqali o'tkaziladi.
-* **Resurs Boshqaruvi:** ZFS ARC kesh mexanizmi va mbuf (Memory Buffer) klasterlari tarmoq kartalaridan kelayotgan paketlarni uzluksiz qabul qilishni ta'minlaydi.
-
----
-
-## 4. Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili
-
-Talabalar ushbu texnologiyani ikki xil muhitda qo'llashlari mumkin:
-
-| Parametr | Jismoniy Uskuna (Real Hardware pfSense) | Virtualizatsiya (Proxmox VE / VMware) |
-|---|---|---|
-| **Tarmoq Kartalari** | Intel I210/I225/I350 (`igb`, `igc`) yoki Realtek (`re`) | Virtual interfeyslar (`virtio-net`, `vmxnet3`, `e1000`) |
-| **Paket Kechikishi** | Minimal (0.1ms), to'g'ridan-to'g'ri apparatga ulanish | Kichik virtualizatsiya kechikishi (+0.2-0.5ms) |
-| **VLAN Boshqaruvi** | 802.1Q signali to'g'ridan-to'g'ri fizik switchga ketadi | Gipervizor virtual bridge'ida VLAN-aware bo'lishi shart |
-| **Moslashuvchanlik** | Uskunaga bog'liq, ko'chirish qiyin | Snapshot, klonlash va tezkor zaxira olish imkoniyati |
+* **Frontend:** Tashqi dunyodan kelayotgan ulanishlarni tinglaydigan qism (IP, Port, SSL sertifikati).
+* **ACL (Access Control Lists):** Aqlli qoidalar:
+  * Masalan: `acl is_crm hdr(host) -i crm.company.uz`
+  * Masalan: `acl is_api path_beg /api/`
+* **Backend:** Serverlar guruhi. ACL mos kelsa, so'rov mos backendga yo'naltiriladi (`use_backend CRM_Cluster if is_crm`).
 
 ---
 
-## 5. Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)
+## 3. SSL/TLS Offloading
 
-1. **Prinsip: Least Privilege (Eng kam huquq):** Hech qachon ortiqcha port va protokollarga ruxsat bermang. Standart holatda barcha kirish taqiqlangan bo'lishi lozim.
-2. **Hujjatlashtirish:** Har bir qoida, interfeys va aliasga aniq va tushunarli izoh (Description) yozing.
-3. **Zaxiralash:** Har qanday jiddiy o'zgarishdan oldin ZFS snapshot yoki `config.xml` zaxira nusxasini oling.
-4. **Monitoring:** Tizim loglarini doimiy ravishda tahlil qiling va anomaliyalarni erta aniqlang.
+Og'ir kriptografik hisob-kitoblarni (RSA/ECC kalit almashinuvi, shifrlash) HAProxy o'z zimmasiga oladi. Backend serverlar esa yengil HTTP da ishlaydi. Bu backend serverlar protsessorini 40% gacha bo'shatadi va SSL sertifikatlarni faqat bitta joyda (pfSense da) yangilash kifoya qiladi.
 
 ---
 
-## 6. Xulosa va O'z-o'zini Tekshirish Savollari
+## 4. Yuklamani Taqsimlash Algoritmlari
 
-* Ushbu mavzudagi asosiy protokol qaysi RFC standartiga asoslangan?
-* Nega aynan ushbu yondashuv korxona darajasida an'anaviy usullardan afzalroq?
-* Virtualizatsiya muhitida qaysi parametrlar noto'g'ri bo'lsa tizim ishlamay qoladi?
-* Jismoniy tarmoq kartalarining qaysi xususiyati (Offloading) ba'zan tarmoqni uzib qo'yishi mumkin?
+* **Round Robin:** So'rovlarni serverlarga navbatma-navbat beradi (serverlar quvvati bir xil bo'lsa).
+* **Least Connections:** Eng kam aktiv sessiyaga ega bo'lgan bo'sh serverga jo'natadi (og'ir SQL so'rovlar uchun ideal).
+* **Source IP Hash:** Bitta foydalanuvchini doim bitta serverga bog'lab qo'yadi.
 
-Endi nazariyani mustahkamlash uchun **[LAB YO'RIQNOMASI](lab.md)** ga o'ting va amaliy laboratoriya ishini bajaring!
+---
+
+## 5. Salomatlik Tekshiruvlari (Health Checks)
+
+HAProxy har 2 soniyada har bir backend serverga HTTP so'rov jo'natadi:
+* Agar server `200 OK` qaytarsa, u sog'lom.
+* Agar server qulab tushsa yoki `500 Server Error` qaytarsa, HAProxy uni 1 soniya ichida umumiy ro'yxatdan chiqaradi. Mijozlar xatolikni ko'rmaydi, barcha trafik ishchi serverlarga o'tadi.
+
+---
+
+## 6. HAProxy va CARP Klasteri Integratsiyasi
+
+> [!IMPORTANT]
+> **Production Qoidasi:** HAProxy Frontend ni hech qachon pfSense ning jismoniy WAN IP siga biriktirmang! Uni **CARP Virtual IP** siga biriktiring. Shunda Master firewall o'chganda, VIP ikkinchi firewallga o'tadi va ikkinchi firewalldagi HAProxy xizmati saytlarni uzluksiz taqdim etishda davom etadi!

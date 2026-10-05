@@ -1,95 +1,60 @@
-# 📚 [KUN-12] LECTURE: WireGuard High-Performance VPN: Zamonaviy Kriptografiya va Benchmarking
+# 📚 [KUN-12] LECTURE: WireGuard High-Performance VPN — FreeBSD Kernel Module va Benchmarking
 
 **Kategoriya:** 2-Hafta: Marshrutlash, Multi-WAN va VPN  
-**Dars Maqsadi:** Ushbu darsda talabalar WireGuard High-Performance VPN: Zamonaviy Kriptografiya va Benchmarking bo'yicha to'liq nazariy asoslarni, FreeBSD va pfSense arxitekturasini, tarmoq protokollari standartlarini hamda korxona darajasidagi (Enterprise) qo'llanish amaliyotini o'rganadilar.
+**Maqsad:** Eng zamonaviy, tezkor va xavfsiz VPN protokoli — WireGuard ning pfSense 2.7.2 dagi rasmiy yadro moduli (`if_wg`), kriptografik tamoyillari va gigabitli optik kanallarda OpenVPN bilan ishlash unumdorligini solishtirish.
 
 ---
 
 ## 🧭 Mundarija
-1. [Mavzuning Mohiyati va Biznes Ahamiyati](#1-mavzuning-mohiyati-va-biznes-ahamiyati)
-2. [Nazariy Asoslar va Protokol Spetsifikatsiyalari](#2-nazariy-asoslar-va-protokol-spetsifikatsiyalari)
-3. [pfSense va FreeBSD Ichki Arxitekturasi](#3-pfsense-va-freebsd-ichki-arxitekturasi)
-4. [Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili](#4-jismoniy-uskuna-hardware-vs-virtualizatsiya-tahlili)
-5. [Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)](#5-production-xavfsizlik-qoidalari)
-6. [Xulosa va O'z-o'zini Tekshirish Savollari](#6-xulosa-va-savollar)
+1. [WireGuard Inqilobi va Arxitekturasi](#1-wireguard-inqilobi)
+2. [Zamonaviy Kriptografik Stek](#2-zamonaviy-kriptografik-stek)
+3. [Cryptokey Routing Tamoyili](#3-cryptokey-routing)
+4. [FreeBSD Kernel if_wg vs Go Userspace](#4-freebsd-kernel-moduli)
+5. [OpenVPN vs WireGuard Benchmark Tahlili](#5-benchmark-tahlili)
+6. [Xulosa](#6-xulosa)
 
 ---
 
-## 1. Mavzuning Mohiyati va Biznes Ahamiyati
+## 1. WireGuard Inqilobi va Arxitekturasi
 
-Zamonaviy korporativ IT infratuzilmasida **WireGuard High-Performance VPN: Zamonaviy Kriptografiya va Benchmarking** shunchaki sozlama emas, balki tarmoq xavfsizligi, barqarorligi va biznes jarayonlarining uzluksizligini (Business Continuity) ta'minlovchi strategik element hisoblanadi. 
-
-Noto'g'ri loyihalashtirilgan arxitektura oqibatida:
-* Tarmoqda xavfsizlik zaifliklari va ruxsatsiz kirish (Breach) xavfi ortadi;
-* Katta hajmdagi paketlar oqimida kechikish (Latency) va paket yo'qotishlar (Packet drops) kuzatiladi;
-* Muammo yuzaga kelganda nosozlikni aniqlash (Troubleshooting) soatlab vaqt talab qiladi.
-
-Ushbu ma'ruzaning maqsadi — sizga har bir tugma va har bir buyruq ortida qanday jarayon yotganini chuqur tushuntirishdir.
+WireGuard — Jason A. Donenfeld tomonidan yaratilgan bo'lib, an'anaviy VPN protokollarining (IPsec, OpenVPN) ulkan kod bazasi va sekinligini butkul o'zgartirdi:
+* **Kod hajmi:** OpenVPN ~100,000 qatordan ortiq kodga ega, IPsec esa 400,000 qator. WireGuard esa atigi **~4,000 qator kod**. Bu uning xavfsizlik auditini osonlashtiradi va zaifliklar (vulnerabilities) ehtimolini keskin kamaytiradi.
+* **Soddalik:** Murakkab kriptografik kelishuvlar (Cipher Negotiation) yo'q. Bir xil va eng xavfsiz zamonaviy algoritmlar qat'iy belgilangan.
 
 ---
 
-## 2. Nazariy Asoslar va Protokol Spetsifikatsiyalari
+## 2. Zamonaviy Kriptografik Stek
 
-### 1. WireGuard inqilobi: Jason Donenfeld arxitekturasi, atigi ~4000 qator kod (OpenVPN ning 100,000+ qatoriga nisbatan), kamroq zaifliklar yuzasi (Attack Surface).
-
-Ushbu bo'limda WireGuard inqilobi mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 2. Zamonaviy kriptografiya: ChaCha20 simmetrik shifrlash, Poly1305 autentifikatsiyasi, Curve25519 ECDH kalit almashinuvi, BLAKE2s xeshlash.
-
-Ushbu bo'limda Zamonaviy kriptografiya mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 3. FreeBSD yadrosidagi WireGuard (`if_wg` kernel moduli) unumdorligi: User-space emas, bevosita yadro darajasida ishlash.
-
-Ushbu bo'limda FreeBSD yadrosidagi WireGuard (`if_wg` kernel moduli) unumdorligi mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 4. Cryptokey Routing tamoyili: Har bir Peer o'zining ochiq kalitiga (Public Key) va ruxsat berilgan IP manzillariga (`AllowedIPs`) ega bo'ladi.
-
-Ushbu bo'limda Cryptokey Routing tamoyili mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 5. Roaming (Mobil qulaylik): Mijoz IP si (Wi-Fi -> LTE) o'zgarganda ham tunnel uzilmasdan darhol davom etaveradi.
-
-Ushbu bo'limda Roaming (Mobil qulaylik) mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-
+WireGuard eskirgan RSA va SHA-1 dan mutlaqo voz kechgan:
+* **Shifrlash va Autentifikatsiya:** ChaCha20 va Poly1305 (AEAD).
+* **Kalit almashinuvi:** Curve25519 (ECDH - Elliptic Curve).
+* **Xeshlash:** BLAKE2s.
+* **Kalit derivatsiyasi:** HKDF.
 
 ---
 
-## 3. pfSense va FreeBSD Ichki Arxitekturasi
+## 3. Cryptokey Routing Tamoyili
 
-pfSense FreeBSD operatsion tizimiga asoslanganligi sababli, barcha tarmoq amallari FreeBSD yadrosining yuqori unumdor tarmoq steki orqali bajariladi:
-* **Kernel & User Space:** Paketlarni qayta ishlash to'g'ridan-to'g'ri yadroda (`pf`, `dummynet`, `netmap`, `if_wg`) kechadi, foydalanuvchi interfeysi (PHP WebGUI) esa faqat konfiguratsiyani (`config.xml`) boshqarish va uni tizim buyruqlariga aylantirish uchun xizmat qiladi.
-* **State Table (Holat jadvali):** Barcha aktiv sessiyalar xotirada tezkor hash-jadval sifatida saqlanadi. Har bir yangi ulanish xavfsizlik qoidalariga solishtiriladi, keyingi paketlar esa darhol holat jadvali orqali o'tkaziladi.
-* **Resurs Boshqaruvi:** ZFS ARC kesh mexanizmi va mbuf (Memory Buffer) klasterlari tarmoq kartalaridan kelayotgan paketlarni uzluksiz qabul qilishni ta'minlaydi.
-
----
-
-## 4. Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili
-
-Talabalar ushbu texnologiyani ikki xil muhitda qo'llashlari mumkin:
-
-| Parametr | Jismoniy Uskuna (Real Hardware pfSense) | Virtualizatsiya (Proxmox VE / VMware) |
-|---|---|---|
-| **Tarmoq Kartalari** | Intel I210/I225/I350 (`igb`, `igc`) yoki Realtek (`re`) | Virtual interfeyslar (`virtio-net`, `vmxnet3`, `e1000`) |
-| **Paket Kechikishi** | Minimal (0.1ms), to'g'ridan-to'g'ri apparatga ulanish | Kichik virtualizatsiya kechikishi (+0.2-0.5ms) |
-| **VLAN Boshqaruvi** | 802.1Q signali to'g'ridan-to'g'ri fizik switchga ketadi | Gipervizor virtual bridge'ida VLAN-aware bo'lishi shart |
-| **Moslashuvchanlik** | Uskunaga bog'liq, ko'chirish qiyin | Snapshot, klonlash va tezkor zaxira olish imkoniyati |
+WireGuard har bir Peer (hamkor) ni oddiy marshrut jadvaliga bog'laydi:
+* Har bir Peer o'zining **Public Key** si va ruxsat berilgan IP manzillar ro'yxatiga (**AllowedIPs**) ega.
+* Agar paket jo'natilayotganda manzil `AllowedIPs` ga to'g'ri kelsa, u o'sha Peerning ochiq kaliti bilan shifrlanadi.
+* Begona kalit bilan shifrlangan yoki `AllowedIPs` dan tashqaridagi IP manzildan kelgan paketlar shunchaki e'tiborsiz tashlab yuboriladi (Drop).
 
 ---
 
-## 5. Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)
+## 4. FreeBSD Kernel if_wg vs Go Userspace
 
-1. **Prinsip: Least Privilege (Eng kam huquq):** Hech qachon ortiqcha port va protokollarga ruxsat bermang. Standart holatda barcha kirish taqiqlangan bo'lishi lozim.
-2. **Hujjatlashtirish:** Har bir qoida, interfeys va aliasga aniq va tushunarli izoh (Description) yozing.
-3. **Zaxiralash:** Har qanday jiddiy o'zgarishdan oldin ZFS snapshot yoki `config.xml` zaxira nusxasini oling.
-4. **Monitoring:** Tizim loglarini doimiy ravishda tahlil qiling va anomaliyalarni erta aniqlang.
+pfSense 2.7.2 da WireGuard rasmiy FreeBSD yadro drayveri (`if_wg`) sifatida ishlaydi:
+* Userspace (Go/Rust) da har bir paket yadro va dastur o'rtasida xotiradan-xotiraga (Context Switch) nusxalanadi, bu esa protsessorni kuchli yuklaydi.
+* **Kernel Module (`if_wg`):** Paketlar bevosita yadro ichida shifrlanadi va marshrutlanadi. Natijada 10Gbps gacha bo'lgan tezliklarda minimal CPU yuklamasi ta'minlanadi.
 
 ---
 
-## 6. Xulosa va O'z-o'zini Tekshirish Savollari
+## 5. OpenVPN vs WireGuard Benchmark Tahlili
 
-* Ushbu mavzudagi asosiy protokol qaysi RFC standartiga asoslangan?
-* Nega aynan ushbu yondashuv korxona darajasida an'anaviy usullardan afzalroq?
-* Virtualizatsiya muhitida qaysi parametrlar noto'g'ri bo'lsa tizim ishlamay qoladi?
-* Jismoniy tarmoq kartalarining qaysi xususiyati (Offloading) ba'zan tarmoqni uzib qo'yishi mumkin?
-
-Endi nazariyani mustahkamlash uchun **[LAB YO'RIQNOMASI](lab.md)** ga o'ting va amaliy laboratoriya ishini bajaring!
+| Ko'rsatkich | OpenVPN (AES-256-GCM) | WireGuard (ChaCha20-Poly1305) | Yutuq |
+|---|:---:|:---:|:---:|
+| **Ulanish Vaqti (Handshake)** | 3 - 8 soniya | **< 100 millisoniya** | 50x tezroq |
+| **O'tkazuvchanlik (1Gbps kanal)**| ~180 - 250 Mbps | **~850 - 950 Mbps** | 4x tezroq |
+| **CPU Yuklamasi (Yuklama ostida)**| 85 - 100% | **15 - 25%** | 4x yengilroq |
+| **Roaming (Wi-Fi -> LTE)** | Ulanish uziladi (Re-auth) | **Uzluksiz davom etadi** | Choksiz |

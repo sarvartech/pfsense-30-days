@@ -1,91 +1,48 @@
-# 📚 [KUN-20] LECTURE: High Availability (CARP) — 2-Qism: pfsync va XML-RPC Zero-Downtime Failover
+# 📚 [KUN-20] LECTURE: High Availability Klasteri — 2-Qism: pfsync, XML-RPC va Zero-Downtime Failover
 
 **Kategoriya:** 3-Hafta: Kiberxavfsizlik, UTM, QoS va HA  
-**Dars Maqsadi:** Ushbu darsda talabalar High Availability (CARP) — 2-Qism: pfsync va XML-RPC Zero-Downtime Failover bo'yicha to'liq nazariy asoslarni, FreeBSD va pfSense arxitekturasini, tarmoq protokollari standartlarini hamda korxona darajasidagi (Enterprise) qo'llanish amaliyotini o'rganadilar.
+**Maqsad:** Master va Backup o'rtasida konfiguratsiyani (Firewall rules, Aliases, VPN, DHCP) real vaqtda avtomat ko'chirish (XML-RPC), ochiq ulanishlar sessiyalarini sinxronlash (`pfsync`) va Master server o'chganda 0 soniya uzilish bilan zaxiraga o'tishni ta'minlash.
 
 ---
 
 ## 🧭 Mundarija
-1. [Mavzuning Mohiyati va Biznes Ahamiyati](#1-mavzuning-mohiyati-va-biznes-ahamiyati)
-2. [Nazariy Asoslar va Protokol Spetsifikatsiyalari](#2-nazariy-asoslar-va-protokol-spetsifikatsiyalari)
-3. [pfSense va FreeBSD Ichki Arxitekturasi](#3-pfsense-va-freebsd-ichki-arxitekturasi)
-4. [Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili](#4-jismoniy-uskuna-hardware-vs-virtualizatsiya-tahlili)
-5. [Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)](#5-production-xavfsizlik-qoidalari)
-6. [Xulosa va O'z-o'zini Tekshirish Savollari](#6-xulosa-va-savollar)
+1. [Nega CARP ning O'zi Yetarli Emas?](#1-nega-carp-yetarli-emas)
+2. [pfsync Protokoli va State Table Replikatsiyasi](#2-pfsync-protokoli)
+3. [XML-RPC Konfiguratsiya Sinxronizatsiyasi](#3-xmlrpc-sinxronizatsiyasi)
+4. [Zero-Downtime Failover Mexanizmi](#4-zero-downtime-failover)
+5. [Preemption Rejimi va Maintenance Mode](#5-preemption-va-maintenance)
+6. [Xulosa](#6-xulosa)
 
 ---
 
-## 1. Mavzuning Mohiyati va Biznes Ahamiyati
+## 1. Nega CARP ning O'zi Yetarli Emas?
 
-Zamonaviy korporativ IT infratuzilmasida **High Availability (CARP) — 2-Qism: pfsync va XML-RPC Zero-Downtime Failover** shunchaki sozlama emas, balki tarmoq xavfsizligi, barqarorligi va biznes jarayonlarining uzluksizligini (Business Continuity) ta'minlovchi strategik element hisoblanadi. 
+Oldingi darsda biz CARP VIP ni sozladik. Ammo agar Master o'chib qolsa nima bo'ladi?
+1. **Muammo 1:** Backup routerda qoidalar (Firewall rules) yo'q yoki eski bo'lib qoladi.
+2. **Muammo 2:** Foydalanuvchilarning barcha aktiv ulanishlari (Zoom qo'ng'iroqlari, yuklanayotgan fayllar, SSH sessiyalar) uzilib ketadi. Chunki stateful firewall da yangi router ulanishning holatini (State Table) bilmaydi va TCP paketlarni tashlab yuboradi!
 
-Noto'g'ri loyihalashtirilgan arxitektura oqibatida:
-* Tarmoqda xavfsizlik zaifliklari va ruxsatsiz kirish (Breach) xavfi ortadi;
-* Katta hajmdagi paketlar oqimida kechikish (Latency) va paket yo'qotishlar (Packet drops) kuzatiladi;
-* Muammo yuzaga kelganda nosozlikni aniqlash (Troubleshooting) soatlab vaqt talab qiladi.
-
-Ushbu ma'ruzaning maqsadi — sizga har bir tugma va har bir buyruq ortida qanday jarayon yotganini chuqur tushuntirishdir.
+Ushbu ikki muammoni hal qilish uchun **`pfsync`** va **`XML-RPC`** kerak bo'ladi.
 
 ---
 
-## 2. Nazariy Asoslar va Protokol Spetsifikatsiyalari
+## 2. pfsync Protokoli va State Table Replikatsiyasi
 
-### 1. `pfsync` (Packet Filter State Synchronization Protocol): FreeBSD yadrosi darajasida har bir ochilgan TCP/UDP sessiyani real vaqtda L2 orqali ikkinchi routerga replikatsiya qilish.
-
-Ushbu bo'limda `pfsync` (Packet Filter State Synchronization Protocol) mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 2. XML-RPC Config Synchronization: Master routerda o'zgartirilgan har qanday firewall qoidasi, alias yoki foydalanuvchi bir soniyada zaxira routerga shifrlangan tarzda ko'chirilishi.
-
-Ushbu bo'limda XML-RPC Config Synchronization mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 3. Zero-Downtime Failover tushunchasi: Master server elektrdan uzilsa ham, birorta paket yo'qolmasdan zaxiraga o'tish mexanizmi.
-
-Ushbu bo'limda Zero-Downtime Failover tushunchasi mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 4. Preemption rejimi: Asosiy router qayta yoqilganda boshqaruvni darhol o'ziga qaytarib olishi (`net.inet.carp.preempt`).
-
-Ushbu bo'limda Preemption rejimi mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-
+`pfsync` — FreeBSD yadrosining protokoli bo'lib (IP Protocol 240), Master routerda har safar yangi TCP/UDP sessiya ochilganda, uning nusxasini L2 orqali ikkinchi routerga replikatsiya qiladi:
+* Master da ochilgan sessiya: `Client: 10.10.10.50:54210 -> Web: 142.250.180.206:443 [ESTABLISHED:ESTABLISHED]`.
+* `pfsync` ushbu qatorni 1 millisoniyada Backup router xotirasiga yozib qo'yadi.
+* Agar Master to'satdan o'chib qolsa, Backup router sessiyani allaqachon biladi va birorta paket uzilmasdan davom etadi!
 
 ---
 
-## 3. pfSense va FreeBSD Ichki Arxitekturasi
+## 3. XML-RPC Konfiguratsiya Sinxronizatsiyasi
 
-pfSense FreeBSD operatsion tizimiga asoslanganligi sababli, barcha tarmoq amallari FreeBSD yadrosining yuqori unumdor tarmoq steki orqali bajariladi:
-* **Kernel & User Space:** Paketlarni qayta ishlash to'g'ridan-to'g'ri yadroda (`pf`, `dummynet`, `netmap`, `if_wg`) kechadi, foydalanuvchi interfeysi (PHP WebGUI) esa faqat konfiguratsiyani (`config.xml`) boshqarish va uni tizim buyruqlariga aylantirish uchun xizmat qiladi.
-* **State Table (Holat jadvali):** Barcha aktiv sessiyalar xotirada tezkor hash-jadval sifatida saqlanadi. Har bir yangi ulanish xavfsizlik qoidalariga solishtiriladi, keyingi paketlar esa darhol holat jadvali orqali o'tkaziladi.
-* **Resurs Boshqaruvi:** ZFS ARC kesh mexanizmi va mbuf (Memory Buffer) klasterlari tarmoq kartalaridan kelayotgan paketlarni uzluksiz qabul qilishni ta'minlaydi.
-
----
-
-## 4. Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili
-
-Talabalar ushbu texnologiyani ikki xil muhitda qo'llashlari mumkin:
-
-| Parametr | Jismoniy Uskuna (Real Hardware pfSense) | Virtualizatsiya (Proxmox VE / VMware) |
-|---|---|---|
-| **Tarmoq Kartalari** | Intel I210/I225/I350 (`igb`, `igc`) yoki Realtek (`re`) | Virtual interfeyslar (`virtio-net`, `vmxnet3`, `e1000`) |
-| **Paket Kechikishi** | Minimal (0.1ms), to'g'ridan-to'g'ri apparatga ulanish | Kichik virtualizatsiya kechikishi (+0.2-0.5ms) |
-| **VLAN Boshqaruvi** | 802.1Q signali to'g'ridan-to'g'ri fizik switchga ketadi | Gipervizor virtual bridge'ida VLAN-aware bo'lishi shart |
-| **Moslashuvchanlik** | Uskunaga bog'liq, ko'chirish qiyin | Snapshot, klonlash va tezkor zaxira olish imkoniyati |
+Ma'mur barcha o'zgarishlarni (Firewall Rules, Aliases, NAT, Virtual IPs, OpenVPN sozlamalari) faqat **FW-01 (Master)** da bajaradi.
+* Master router o'zgarishni saqlagach, shifrlangan XML-RPC (HTTPS orqali) orqali ushbu sozlamalarni **FW-02 (Backup)** ga avtomat nusxalaydi.
+* Backup routerda hech qachon qo'lda qoida yozilmaydi!
 
 ---
 
-## 5. Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)
+## 4. Preemption va Maintenance Mode
 
-1. **Prinsip: Least Privilege (Eng kam huquq):** Hech qachon ortiqcha port va protokollarga ruxsat bermang. Standart holatda barcha kirish taqiqlangan bo'lishi lozim.
-2. **Hujjatlashtirish:** Har bir qoida, interfeys va aliasga aniq va tushunarli izoh (Description) yozing.
-3. **Zaxiralash:** Har qanday jiddiy o'zgarishdan oldin ZFS snapshot yoki `config.xml` zaxira nusxasini oling.
-4. **Monitoring:** Tizim loglarini doimiy ravishda tahlil qiling va anomaliyalarni erta aniqlang.
-
----
-
-## 6. Xulosa va O'z-o'zini Tekshirish Savollari
-
-* Ushbu mavzudagi asosiy protokol qaysi RFC standartiga asoslangan?
-* Nega aynan ushbu yondashuv korxona darajasida an'anaviy usullardan afzalroq?
-* Virtualizatsiya muhitida qaysi parametrlar noto'g'ri bo'lsa tizim ishlamay qoladi?
-* Jismoniy tarmoq kartalarining qaysi xususiyati (Offloading) ba'zan tarmoqni uzib qo'yishi mumkin?
-
-Endi nazariyani mustahkamlash uchun **[LAB YO'RIQNOMASI](lab.md)** ga o'ting va amaliy laboratoriya ishini bajaring!
+* **Preemption (`net.inet.carp.preempt=1`):** Agar bitta interfeysda (masalan WAN) aloqa uzilsa, barcha boshqa interfeyslar (LAN, DMZ) ham bir vaqtda zaxiraga o'tishini ta'minlaydi.
+* **Persistent Maintenance Mode:** Serverda texnik profilaktika o'tkazish kerak bo'lsa, uni bitta tugma bilan vaqtincha zaxiraga o'tkazib, keyin xotirjam yangilash imkoniyati.

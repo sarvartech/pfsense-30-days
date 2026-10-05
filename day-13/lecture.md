@@ -1,95 +1,54 @@
-# 📚 [KUN-13] LECTURE: Enterprise IPsec IKEv2 Site-to-Site Tunnel va Routed VTI
+# 📚 [KUN-13] LECTURE: Enterprise IPsec IKEv2 Site-to-Site va Routed VTI (Virtual Tunnel Interface)
 
 **Kategoriya:** 2-Hafta: Marshrutlash, Multi-WAN va VPN  
-**Dars Maqsadi:** Ushbu darsda talabalar Enterprise IPsec IKEv2 Site-to-Site Tunnel va Routed VTI bo'yicha to'liq nazariy asoslarni, FreeBSD va pfSense arxitekturasini, tarmoq protokollari standartlarini hamda korxona darajasidagi (Enterprise) qo'llanish amaliyotini o'rganadilar.
+**Maqsad:** Korporativ gigantlar, banklar va telekom operatorlari standarti bo'lgan IPsec IKEv2 protokolini, Phase 1 va Phase 2 kripto-to'plamlarini, hamda an'anaviy Policy-based IPsec o'rniga zamonaviy Route-based VTI arxitekturasini o'rganish.
 
 ---
 
 ## 🧭 Mundarija
-1. [Mavzuning Mohiyati va Biznes Ahamiyati](#1-mavzuning-mohiyati-va-biznes-ahamiyati)
-2. [Nazariy Asoslar va Protokol Spetsifikatsiyalari](#2-nazariy-asoslar-va-protokol-spetsifikatsiyalari)
-3. [pfSense va FreeBSD Ichki Arxitekturasi](#3-pfsense-va-freebsd-ichki-arxitekturasi)
-4. [Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili](#4-jismoniy-uskuna-hardware-vs-virtualizatsiya-tahlili)
-5. [Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)](#5-production-xavfsizlik-qoidalari)
-6. [Xulosa va O'z-o'zini Tekshirish Savollari](#6-xulosa-va-savollar)
+1. [IPsec Arxitekturasi va Standartlari](#1-ipsec-arxitekturasi)
+2. [IKEv1 vs IKEv2: Nega IKEv2 Sanoat Standarti?](#2-ikev1-vs-ikev2)
+3. [Phase 1 (IKE SA) va Phase 2 (Child SA) Jarayoni](#3-phase-1-va-phase-2)
+4. [Policy-Based IPsec vs Route-Based VTI](#4-policy-vs-route-based-vti)
+5. [VTI ustida BGP/OSPF Dinamik Marshrutlash](#5-vti-ustida-dinamik-marshrutlash)
+6. [Xulosa](#6-xulosa)
 
 ---
 
-## 1. Mavzuning Mohiyati va Biznes Ahamiyati
+## 1. IPsec Arxitekturasi
 
-Zamonaviy korporativ IT infratuzilmasida **Enterprise IPsec IKEv2 Site-to-Site Tunnel va Routed VTI** shunchaki sozlama emas, balki tarmoq xavfsizligi, barqarorligi va biznes jarayonlarining uzluksizligini (Business Continuity) ta'minlovchi strategik element hisoblanadi. 
-
-Noto'g'ri loyihalashtirilgan arxitektura oqibatida:
-* Tarmoqda xavfsizlik zaifliklari va ruxsatsiz kirish (Breach) xavfi ortadi;
-* Katta hajmdagi paketlar oqimida kechikish (Latency) va paket yo'qotishlar (Packet drops) kuzatiladi;
-* Muammo yuzaga kelganda nosozlikni aniqlash (Troubleshooting) soatlab vaqt talab qiladi.
-
-Ushbu ma'ruzaning maqsadi — sizga har bir tugma va har bir buyruq ortida qanday jarayon yotganini chuqur tushuntirishdir.
+IPsec (Internet Protocol Security) — tarmoq qatlamida (Layer 3) ishlovchi eng xavfsiz protokollar to'plamidir.
+* **ESP (Encapsulating Security Payload - IP Protocol 50):** Ma'lumotlarni shifrlash va yaxlitligini ta'minlash uchun asosiy protokol.
+* **AH (Authentication Header - IP Protocol 51):** Faqat autentifikatsiya beradi, shifrlamaydi (ishlab chiqarishda kam ishlatiladi).
+* **UDP 500 (IKE) va UDP 4500 (NAT-Traversal):** Kalitlarni kelishish va NAT ortidagi qurilmalarni ulash portlari.
 
 ---
 
-## 2. Nazariy Asoslar va Protokol Spetsifikatsiyalari
+## 2. IKEv1 vs IKEv2
 
-### 1. IPsec (Internet Protocol Security) arxitekturasi: Tarmoq qatlamida (L3) shifrlash, AH (Authentication Header) vs ESP (Encapsulating Security Payload).
-
-Ushbu bo'limda IPsec (Internet Protocol Security) arxitekturasi mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 2. IKEv1 vs IKEv2 (Internet Key Exchange): Nega IKEv1 eskirgan va IKEv2 kamroq paket almashinuvi, DoS dan himoya, NAT-Traversal (NAT-T) va MOBIKE bilan ustun?
-
-Ushbu bo'limda IKEv1 vs IKEv2 (Internet Key Exchange) mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 3. Ikki Fazali Jarayon: Phase 1 (IKE SA - tunnelning o'zini xavfsiz qilish, DH guruhlar) va Phase 2 (Child SA - real ma'lumotlarni shifrlash, PFS).
-
-Ushbu bo'limda Ikki Fazali Jarayon mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 4. Policy-Based IPsec vs Route-Based IPsec (VTI - Virtual Tunnel Interface): Nega VTI korxonalar uchun eng qulay (interfeys sifatida ko'rinadi, OSPF/BGP yurgizish mumkin)?
-
-Ushbu bo'limda Policy-Based IPsec vs Route-Based IPsec (VTI - Virtual Tunnel Interface) mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 5. Dead Peer Detection (DPD) va Rekeying parametrlari.
-
-Ushbu bo'limda Dead Peer Detection (DPD) va Rekeying parametrlari. mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-
+* **IKEv1 (Eskirgan):** Ko'p paket almashinuvi (Main Mode - 6 ta paket), sekin qayta ulanish, NAT bilan ishlashda qiyinchiliklar.
+* **IKEv2 (RFC 7296):**
+  * Atigi 4 ta paketda tunnelni o'rnatadi.
+  * O'rnatilgan **NAT-Traversal (NAT-T)**.
+  * **Dead Peer Detection (DPD):** Aloqa uzilganda soniyalarda aniqlash.
+  * **MOBIKE:** IP manzil o'zgarganda tunnelni uzmasdan davom ettirish.
 
 ---
 
-## 3. pfSense va FreeBSD Ichki Arxitekturasi
+## 3. Phase 1 (IKE SA) va Phase 2 (Child SA)
 
-pfSense FreeBSD operatsion tizimiga asoslanganligi sababli, barcha tarmoq amallari FreeBSD yadrosining yuqori unumdor tarmoq steki orqali bajariladi:
-* **Kernel & User Space:** Paketlarni qayta ishlash to'g'ridan-to'g'ri yadroda (`pf`, `dummynet`, `netmap`, `if_wg`) kechadi, foydalanuvchi interfeysi (PHP WebGUI) esa faqat konfiguratsiyani (`config.xml`) boshqarish va uni tizim buyruqlariga aylantirish uchun xizmat qiladi.
-* **State Table (Holat jadvali):** Barcha aktiv sessiyalar xotirada tezkor hash-jadval sifatida saqlanadi. Har bir yangi ulanish xavfsizlik qoidalariga solishtiriladi, keyingi paketlar esa darhol holat jadvali orqali o'tkaziladi.
-* **Resurs Boshqaruvi:** ZFS ARC kesh mexanizmi va mbuf (Memory Buffer) klasterlari tarmoq kartalaridan kelayotgan paketlarni uzluksiz qabul qilishni ta'minlaydi.
-
----
-
-## 4. Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili
-
-Talabalar ushbu texnologiyani ikki xil muhitda qo'llashlari mumkin:
-
-| Parametr | Jismoniy Uskuna (Real Hardware pfSense) | Virtualizatsiya (Proxmox VE / VMware) |
-|---|---|---|
-| **Tarmoq Kartalari** | Intel I210/I225/I350 (`igb`, `igc`) yoki Realtek (`re`) | Virtual interfeyslar (`virtio-net`, `vmxnet3`, `e1000`) |
-| **Paket Kechikishi** | Minimal (0.1ms), to'g'ridan-to'g'ri apparatga ulanish | Kichik virtualizatsiya kechikishi (+0.2-0.5ms) |
-| **VLAN Boshqaruvi** | 802.1Q signali to'g'ridan-to'g'ri fizik switchga ketadi | Gipervizor virtual bridge'ida VLAN-aware bo'lishi shart |
-| **Moslashuvchanlik** | Uskunaga bog'liq, ko'chirish qiyin | Snapshot, klonlash va tezkor zaxira olish imkoniyati |
+1. **Phase 1 (IKE SA):** Ikki router bir-birini taniydi va o'zaro boshqaruv kanalini xavfsiz qiladi:
+   * Diffie-Hellman (DH) guruhlari: Group 14 (2048-bit) yoki Group 19/20 (Elliptic Curve).
+   * Shifrlash: `AES-256-GCM` yoki `AES-CBC`.
+2. **Phase 2 (Child SA):** Haqiqiy foydalanuvchi ma'lumotlarini tashuvchi shifrlangan tunnel:
+   * Perfect Forward Secrecy (PFS): Har bir sessiya uchun yangi mustaqil kalitlar generatsiyasi.
 
 ---
 
-## 5. Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)
+## 4. Policy-Based IPsec vs Route-Based VTI
 
-1. **Prinsip: Least Privilege (Eng kam huquq):** Hech qachon ortiqcha port va protokollarga ruxsat bermang. Standart holatda barcha kirish taqiqlangan bo'lishi lozim.
-2. **Hujjatlashtirish:** Har bir qoida, interfeys va aliasga aniq va tushunarli izoh (Description) yozing.
-3. **Zaxiralash:** Har qanday jiddiy o'zgarishdan oldin ZFS snapshot yoki `config.xml` zaxira nusxasini oling.
-4. **Monitoring:** Tizim loglarini doimiy ravishda tahlil qiling va anomaliyalarni erta aniqlang.
-
----
-
-## 6. Xulosa va O'z-o'zini Tekshirish Savollari
-
-* Ushbu mavzudagi asosiy protokol qaysi RFC standartiga asoslangan?
-* Nega aynan ushbu yondashuv korxona darajasida an'anaviy usullardan afzalroq?
-* Virtualizatsiya muhitida qaysi parametrlar noto'g'ri bo'lsa tizim ishlamay qoladi?
-* Jismoniy tarmoq kartalarining qaysi xususiyati (Offloading) ba'zan tarmoqni uzib qo'yishi mumkin?
-
-Endi nazariyani mustahkamlash uchun **[LAB YO'RIQNOMASI](lab.md)** ga o'ting va amaliy laboratoriya ishini bajaring!
+* **Policy-Based (An'anaviy):** Shpion qoidalari (SPD) orqali ishlaydi. Tarmoq interfeysi yo'q, `ping` va `traceroute` bilan tekshirish qiyin, dinamik marshrutlash (OSPF/BGP) ulab bo'lmaydi.
+* **Route-Based (VTI - Virtual Tunnel Interface):** pfSense da haqiqiy virtual tarmoq kartasi (`ipsecX`) paydo bo'ladi.
+  * Unga IP manzil beriladi (masalan `10.254.254.1/30`).
+  * Siz oddiy `route add` orqali trafikni tunnelga yo'naltirasiz.
+  * VTI ustidan OSPF va BGP protokollarini bemalol yurgizish mumkin!

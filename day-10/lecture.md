@@ -1,95 +1,67 @@
-# 📚 [KUN-10] LECTURE: OpenVPN Remote Access (Road Warrior), PKI/CA va Client Export
+# 📚 [KUN-10] LECTURE: Enterprise OpenVPN Remote Access (Road Warrior), PKI/CA va TLS-Crypt
 
 **Kategoriya:** 2-Hafta: Marshrutlash, Multi-WAN va VPN  
-**Dars Maqsadi:** Ushbu darsda talabalar OpenVPN Remote Access (Road Warrior), PKI/CA va Client Export bo'yicha to'liq nazariy asoslarni, FreeBSD va pfSense arxitekturasini, tarmoq protokollari standartlarini hamda korxona darajasidagi (Enterprise) qo'llanish amaliyotini o'rganadilar.
+**Maqsad:** Masofaviy xodimlar, dasturchilar va rahbarlar uchun har qanday joydan (uy, aeroport, kafe) korporativ serverlarga xavfsiz shifrlangan ulanish qurish. Korxona PKI infratuzilmasi, TLS-Crypt himoyasi va Multi-WAN sharoitida VPN failover mexanizmini o'rganish.
 
 ---
 
 ## 🧭 Mundarija
-1. [Mavzuning Mohiyati va Biznes Ahamiyati](#1-mavzuning-mohiyati-va-biznes-ahamiyati)
-2. [Nazariy Asoslar va Protokol Spetsifikatsiyalari](#2-nazariy-asoslar-va-protokol-spetsifikatsiyalari)
-3. [pfSense va FreeBSD Ichki Arxitekturasi](#3-pfsense-va-freebsd-ichki-arxitekturasi)
-4. [Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili](#4-jismoniy-uskuna-hardware-vs-virtualizatsiya-tahlili)
-5. [Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)](#5-production-xavfsizlik-qoidalari)
-6. [Xulosa va O'z-o'zini Tekshirish Savollari](#6-xulosa-va-savollar)
+1. [OpenVPN Protokoli va SSL/TLS Arxitekturasi](#1-openvpn-protokoli)
+2. [PKI (Public Key Infrastructure): CA, Server va Client Sertifikatlari](#2-pki-arxitekturasi)
+3. [Nega UDP 1194 va TLS-Crypt?](#3-tls-crypt-va-port-skanerlashdan-himoya)
+4. [Split Tunneling vs Full Tunneling](#4-split-vs-full-tunneling)
+5. [Multi-WAN bilan OpenVPN Integratsiyasi](#5-multi-wan-bilan-openvpn)
+6. [CARP Klasterida OpenVPN VIP Bog'lanishi](#6-carp-va-openvpn)
+7. [Xulosa](#7-xulosa)
 
 ---
 
-## 1. Mavzuning Mohiyati va Biznes Ahamiyati
+## 1. OpenVPN Protokoli va SSL/TLS Arxitekturasi
 
-Zamonaviy korporativ IT infratuzilmasida **OpenVPN Remote Access (Road Warrior), PKI/CA va Client Export** shunchaki sozlama emas, balki tarmoq xavfsizligi, barqarorligi va biznes jarayonlarining uzluksizligini (Business Continuity) ta'minlovchi strategik element hisoblanadi. 
-
-Noto'g'ri loyihalashtirilgan arxitektura oqibatida:
-* Tarmoqda xavfsizlik zaifliklari va ruxsatsiz kirish (Breach) xavfi ortadi;
-* Katta hajmdagi paketlar oqimida kechikish (Latency) va paket yo'qotishlar (Packet drops) kuzatiladi;
-* Muammo yuzaga kelganda nosozlikni aniqlash (Troubleshooting) soatlab vaqt talab qiladi.
-
-Ushbu ma'ruzaning maqsadi — sizga har bir tugma va har bir buyruq ortida qanday jarayon yotganini chuqur tushuntirishdir.
+OpenVPN — dunyodagi eng sinovdan o'tgan, o'ta moslashuvchan ochiq kodli VPN protokoli hisoblanadi. U foydalanuvchilarni autentifikatsiya qilish va ma'lumotlarni shifrlash uchun **OpenSSL** kutubxonasiga tayanadi:
+* **TUN (Tunnel) Rejimi:** Layer 3 (IP darajasida) ishlaydi. Masofaviy mijozlar uchun eng optimal rejim (Broadcast paketlarni o'tkazmaydi, trafik tejaladi).
+* **TAP (Bridge) Rejimi:** Layer 2 (Ethernet darajasida) ishlaydi. Korxona bitta umumiy L2 broadcast domenida ishlashi kerak bo'lgan kamdan-kam holatlarda qo'llaniladi.
 
 ---
 
-## 2. Nazariy Asoslar va Protokol Spetsifikatsiyalari
+## 2. PKI (Public Key Infrastructure)
 
-### 1. Virtual Private Network (VPN) tamoyillari: Tunneling, Shifrlash (Encryption), Autentifikatsiya va Yaxlitlik (Integrity).
-
-Ushbu bo'limda Virtual Private Network (VPN) tamoyillari mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 2. Public Key Infrastructure (PKI): Root Certificate Authority (CA), Server Certificate va Har bir mijoz uchun alohida Client Certificate mexanizmi.
-
-Ushbu bo'limda Public Key Infrastructure (PKI) mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 3. OpenVPN Protokoli: SSL/TLS asosidagi VPN, UDP vs TCP tanlovi (Nega UDP 1194 tezroq va samaraliroq?).
-
-Ushbu bo'limda OpenVPN Protokoli mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 4. TLS-Crypt vs TLS-Auth: Port skanerlashdan himoya (Port knocking effekti) — server begona paketlarga javob bermaydi va DoS hujumlarni boshidayoq to'xtatadi.
-
-Ushbu bo'limda TLS-Crypt vs TLS-Auth mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 5. Split Tunneling vs Full Tunneling: Faqat ofis resurslarini VPN dan o'tkazish yoki barcha internet trafigini ofis orqali haydash.
-
-Ushbu bo'limda Split Tunneling vs Full Tunneling mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-
+Korporativ xavfsizlikda faqat login/parolga ishonish xavflidir. OpenVPN ikki faktorli kriptografiyadan foydalanadi:
+1. **Root Certificate Authority (CA):** Korxonaning bosh sertifikatlash markazi (pfSense ichida yaratiladi).
+2. **Server Certificate:** pfSense OpenVPN serverining shaxsini tasdiqlovchi sertifikat.
+3. **Client Certificates:** Har bir xodimga alohida shaxsiy sertifikat chiqariladi (`user-ali`, `user-nodir`). Agar xodim ishdan ketsa, uning sertifikati bekor qilinadi (Revocation List - CRL).
 
 ---
 
-## 3. pfSense va FreeBSD Ichki Arxitekturasi
+## 3. Nega UDP 1194 va TLS-Crypt?
 
-pfSense FreeBSD operatsion tizimiga asoslanganligi sababli, barcha tarmoq amallari FreeBSD yadrosining yuqori unumdor tarmoq steki orqali bajariladi:
-* **Kernel & User Space:** Paketlarni qayta ishlash to'g'ridan-to'g'ri yadroda (`pf`, `dummynet`, `netmap`, `if_wg`) kechadi, foydalanuvchi interfeysi (PHP WebGUI) esa faqat konfiguratsiyani (`config.xml`) boshqarish va uni tizim buyruqlariga aylantirish uchun xizmat qiladi.
-* **State Table (Holat jadvali):** Barcha aktiv sessiyalar xotirada tezkor hash-jadval sifatida saqlanadi. Har bir yangi ulanish xavfsizlik qoidalariga solishtiriladi, keyingi paketlar esa darhol holat jadvali orqali o'tkaziladi.
-* **Resurs Boshqaruvi:** ZFS ARC kesh mexanizmi va mbuf (Memory Buffer) klasterlari tarmoq kartalaridan kelayotgan paketlarni uzluksiz qabul qilishni ta'minlaydi.
-
----
-
-## 4. Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili
-
-Talabalar ushbu texnologiyani ikki xil muhitda qo'llashlari mumkin:
-
-| Parametr | Jismoniy Uskuna (Real Hardware pfSense) | Virtualizatsiya (Proxmox VE / VMware) |
-|---|---|---|
-| **Tarmoq Kartalari** | Intel I210/I225/I350 (`igb`, `igc`) yoki Realtek (`re`) | Virtual interfeyslar (`virtio-net`, `vmxnet3`, `e1000`) |
-| **Paket Kechikishi** | Minimal (0.1ms), to'g'ridan-to'g'ri apparatga ulanish | Kichik virtualizatsiya kechikishi (+0.2-0.5ms) |
-| **VLAN Boshqaruvi** | 802.1Q signali to'g'ridan-to'g'ri fizik switchga ketadi | Gipervizor virtual bridge'ida VLAN-aware bo'lishi shart |
-| **Moslashuvchanlik** | Uskunaga bog'liq, ko'chirish qiyin | Snapshot, klonlash va tezkor zaxira olish imkoniyati |
+* **UDP vs TCP:** Nega VPN TCP ustida qurilmasligi kerak? Chunki agar ichki trafik TCP bo'lsa va VPN ham TCP bo'lsa, paket yo'qolganda "TCP-over-TCP meltdown" effekti yuzaga keladi (ikkala qatlam ham qayta so'rov jo'natib kanalni tiqib qo'yadi). UDP 1194 esa yengil va eng tezkor ishlaydi.
+* **TLS-Crypt Kuchi:** An'anaviy OpenVPN serveri UDP port 1194 da tinglab turadi va xakerlar skaner qilganda ochiq portni ko'ra oladi. **TLS-Crypt** yordamida esa hatto dastlabki TLS handshake paketlari ham maxsus simmetrik kalit bilan shifrlanadi. Natijada:
+  1. Hujumchilar uchun port mutlaqo yopiq (filtrlanmagan/dead) ko'rinadi.
+  2. Port skanerlari va DoS hujumlar pfSense yadrosi darajasidayoq to'xtatiladi.
 
 ---
 
-## 5. Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)
+## 4. Split Tunneling vs Full Tunneling
 
-1. **Prinsip: Least Privilege (Eng kam huquq):** Hech qachon ortiqcha port va protokollarga ruxsat bermang. Standart holatda barcha kirish taqiqlangan bo'lishi lozim.
-2. **Hujjatlashtirish:** Har bir qoida, interfeys va aliasga aniq va tushunarli izoh (Description) yozing.
-3. **Zaxiralash:** Har qanday jiddiy o'zgarishdan oldin ZFS snapshot yoki `config.xml` zaxira nusxasini oling.
-4. **Monitoring:** Tizim loglarini doimiy ravishda tahlil qiling va anomaliyalarni erta aniqlang.
+* **Split Tunneling (Tavsiya etiladi):** Xodim VPN ga ulanganda, faqat korporativ tarmoqqa boruvchi paketlar (`10.10.0.0/16`) tunnel orqali o'tadi. YouTube, Instagram va oddiy internet trafigi esa xodimning o'z uy interneti orqali ketadi.
+* **Full Tunneling:** Xodimning 100% barcha trafigi ofis orqali filtrlanadi. Bu banklar va davlat tashkilotlarida xodimlarning internet xatti-harakatlarini qat'iy nazorat qilish uchun ishlatiladi.
 
 ---
 
-## 6. Xulosa va O'z-o'zini Tekshirish Savollari
+## 5. Multi-WAN bilan OpenVPN Integratsiyasi
 
-* Ushbu mavzudagi asosiy protokol qaysi RFC standartiga asoslangan?
-* Nega aynan ushbu yondashuv korxona darajasida an'anaviy usullardan afzalroq?
-* Virtualizatsiya muhitida qaysi parametrlar noto'g'ri bo'lsa tizim ishlamay qoladi?
-* Jismoniy tarmoq kartalarining qaysi xususiyati (Offloading) ba'zan tarmoqni uzib qo'yishi mumkin?
+Agar korxonada 2 ta provayder bo'lsa, xodimlar asosiy provayder uzilganda ham VPN ga ulana olishi kerak:
+1. pfSense da OpenVPN server interfeysi sifatida `Localhost` tanlanishi mumkin yoki ikkala WAN uchun alohida Port Forward qilinadi.
+2. Xodimning `.ovpn` konfiguratsiya faylida bir nechta `remote` qatori yoziladi:
+```text
+remote 203.0.113.5 1194 udp
+remote 198.51.100.14 1194 udp
+```
+OpenVPN mijozi birinchi IP javob bermasa, avtomatik ravishda ikkinchi IP ga ulanadi!
 
-Endi nazariyani mustahkamlash uchun **[LAB YO'RIQNOMASI](lab.md)** ga o'ting va amaliy laboratoriya ishini bajaring!
+---
+
+## 6. CARP Klasterida OpenVPN VIP Bog'lanishi
+
+Ikkita pfSense (CARP klasteri) mavjud bo'lsa, OpenVPN Server jismoniy WAN IP siga emas, balki **WAN CARP VIP** ga biriktiriladi (`Interface: CARP VIP`). Natijada, agar Master firewall ishdan chiqsa, Backup firewall CARP VIP ni o'ziga oladi va OpenVPN serveri ikkinchi tugunda mijozlar uchun zudlik bilan xizmat ko'rsatishni boshlaydi.

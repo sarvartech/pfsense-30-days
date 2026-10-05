@@ -1,95 +1,97 @@
-# 📚 [KUN-19] LECTURE: High Availability (CARP) Klasteri — 1-Qism: L2 Sync, Promiscuous Mode va Virtual IPs
+# 📚 [KUN-19] LECTURE: High Availability (CARP) Klasteri — 1-Qism: L2 Sync, Promiscuous Mode, Virtual IPs va Multi-WAN HA
 
 **Kategoriya:** 3-Hafta: Kiberxavfsizlik, UTM, QoS va HA  
-**Dars Maqsadi:** Ushbu darsda talabalar High Availability (CARP) Klasteri — 1-Qism: L2 Sync, Promiscuous Mode va Virtual IPs bo'yicha to'liq nazariy asoslarni, FreeBSD va pfSense arxitekturasini, tarmoq protokollari standartlarini hamda korxona darajasidagi (Enterprise) qo'llanish amaliyotini o'rganadilar.
+**Maqsad:** Korxonada yagona xavfsizlik devori ishdan chiqish xavfini (Single Point of Failure - SPOF) yo'qotish, ikkita pfSense routerini (Master va Backup) klasterga birlashtirish, CARP protokoli, Virtual IP lar va Multi-WAN sharoitida klaster qurish arxitekturasini chuqur o'rganish.
 
 ---
 
 ## 🧭 Mundarija
-1. [Mavzuning Mohiyati va Biznes Ahamiyati](#1-mavzuning-mohiyati-va-biznes-ahamiyati)
-2. [Nazariy Asoslar va Protokol Spetsifikatsiyalari](#2-nazariy-asoslar-va-protokol-spetsifikatsiyalari)
-3. [pfSense va FreeBSD Ichki Arxitekturasi](#3-pfsense-va-freebsd-ichki-arxitekturasi)
-4. [Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili](#4-jismoniy-uskuna-hardware-vs-virtualizatsiya-tahlili)
-5. [Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)](#5-production-xavfsizlik-qoidalari)
-6. [Xulosa va O'z-o'zini Tekshirish Savollari](#6-xulosa-va-savollar)
+1. [Nega CARP? HSRP va VRRP bilan Farqlari](#1-nega-carp)
+2. [CARP Virtual IP va Virtual MAC Mexanizmi](#2-virtual-ip-va-mac)
+3. [advbase va advskew: Kim Master va Kim Backup?](#3-advbase-va-advskew)
+4. [Virtualizatsiyada Eng Katta Tuzoq: Promiscuous Mode va MAC Spoofing](#4-promiscuous-va-mac-spoofing)
+5. [Dedicated PFSYNC L2 Havolasi](#5-dedicated-pfsync-havolasi)
+6. [CARP Klasterida Multi-WAN Arxitekturasi](#6-carp-va-multi-wan)
+7. [Xulosa](#7-xulosa)
 
 ---
 
-## 1. Mavzuning Mohiyati va Biznes Ahamiyati
+## 1. Nega CARP? HSRP va VRRP bilan Farqlari
 
-Zamonaviy korporativ IT infratuzilmasida **High Availability (CARP) Klasteri — 1-Qism: L2 Sync, Promiscuous Mode va Virtual IPs** shunchaki sozlama emas, balki tarmoq xavfsizligi, barqarorligi va biznes jarayonlarining uzluksizligini (Business Continuity) ta'minlovchi strategik element hisoblanadi. 
-
-Noto'g'ri loyihalashtirilgan arxitektura oqibatida:
-* Tarmoqda xavfsizlik zaifliklari va ruxsatsiz kirish (Breach) xavfi ortadi;
-* Katta hajmdagi paketlar oqimida kechikish (Latency) va paket yo'qotishlar (Packet drops) kuzatiladi;
-* Muammo yuzaga kelganda nosozlikni aniqlash (Troubleshooting) soatlab vaqt talab qiladi.
-
-Ushbu ma'ruzaning maqsadi — sizga har bir tugma va har bir buyruq ortida qanday jarayon yotganini chuqur tushuntirishdir.
+* **Cisco HSRP:** Cisco mulki bo'lgan yopiq protokol.
+* **VRRP (RFC 5798):** Standart protokol, ammo uzoq yillar Cisco patentlari tufayli erkin operatsion tizimlarda xavfsiz qo'llanilishi cheklangan.
+* **CARP (Common Address Redundancy Protocol):** OpenBSD loyihasi tomonidan kriptografik xavfsiz va patentlardan xoli qilib yaratilgan. U IP Protocol 112 da ishlaydi va har bir e'lon paketini SHA-1 / HMAC parol bilan tasdiqlaydi.
 
 ---
 
-## 2. Nazariy Asoslar va Protokol Spetsifikatsiyalari
+## 2. CARP Virtual IP va Virtual MAC Mexanizmi
 
-### 1. CARP (Common Address Redundancy Protocol - RFC 5798): Cisco HSRP va VRRP ning ochiq kodli patenti cheklanmagan alternativi.
+Klasterdagi ikkita router alohida jismoniy IP larga ega bo'ladi, lekin tarmoqdagi barcha kompyuterlar yagona virtual shlyuz IP manziliga murojaat qiladi:
+* **FW-01 (Master):** LAN Real IP: `10.10.10.2`
+* **FW-02 (Backup):** LAN Real IP: `10.10.10.3`
+* **CARP VIP (Virtual Gateway):** `10.10.10.1`
 
-Ushbu bo'limda CARP (Common Address Redundancy Protocol - RFC 5798) mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 2. Virtual IP (VIP) mexanizmi: Ikkita jismoniy router (Master va Backup) bitta umumiy 'ko'rinmas' virtual shlyuz IP manzilini (masalan `10.10.10.1`) boshqarishi.
-
-Ushbu bo'limda Virtual IP (VIP) mexanizmi mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 3. VHID (Virtual Host ID) va `advskew` (reklama kechikishi): Master router tez-tez e'lon yuboradi (`advskew 0`), Backup esa kutib turadi (`advskew 100`).
-
-Ushbu bo'limda VHID (Virtual Host ID) va `advskew` (reklama kechikishi) mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 4. Promiscuous Mode va MAC Address Spoofing: Virtualizatsiya va zamonaviy switchlar begona MAC manzilini (Virtual CARP MAC: `00:00:5e:00:01:XX`) ko'rganda bloklab qo'ymasligi uchun zarur sozlamalar.
-
-Ushbu bo'limda Promiscuous Mode va MAC Address Spoofing mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 5. Dedicated PFSYNC L2 Channel: Ikkita firewall o'rtasida to'g'ridan-to'g'ri ulangan alohida ajratilgan xavfsiz tarmoq kabeli.
-
-Ushbu bo'limda Dedicated PFSYNC L2 Channel mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-
+Har bir CARP Virtual IP o'zining Virtual MAC manzilini hisoblab chiqaradi:
+$$	ext{MAC} = 	ext{00:00:5e:00:01:\{	ext{VHID}\}}$$
+Masalan, VHID = 1 bo'lsa, tarmoq kartasi `00:00:5e:00:01:01` MAC manzilini oladi.
 
 ---
 
-## 3. pfSense va FreeBSD Ichki Arxitekturasi
+## 3. advbase va advskew
 
-pfSense FreeBSD operatsion tizimiga asoslanganligi sababli, barcha tarmoq amallari FreeBSD yadrosining yuqori unumdor tarmoq steki orqali bajariladi:
-* **Kernel & User Space:** Paketlarni qayta ishlash to'g'ridan-to'g'ri yadroda (`pf`, `dummynet`, `netmap`, `if_wg`) kechadi, foydalanuvchi interfeysi (PHP WebGUI) esa faqat konfiguratsiyani (`config.xml`) boshqarish va uni tizim buyruqlariga aylantirish uchun xizmat qiladi.
-* **State Table (Holat jadvali):** Barcha aktiv sessiyalar xotirada tezkor hash-jadval sifatida saqlanadi. Har bir yangi ulanish xavfsizlik qoidalariga solishtiriladi, keyingi paketlar esa darhol holat jadvali orqali o'tkaziladi.
-* **Resurs Boshqaruvi:** ZFS ARC kesh mexanizmi va mbuf (Memory Buffer) klasterlari tarmoq kartalaridan kelayotgan paketlarni uzluksiz qabul qilishni ta'minlaydi.
-
----
-
-## 4. Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili
-
-Talabalar ushbu texnologiyani ikki xil muhitda qo'llashlari mumkin:
-
-| Parametr | Jismoniy Uskuna (Real Hardware pfSense) | Virtualizatsiya (Proxmox VE / VMware) |
-|---|---|---|
-| **Tarmoq Kartalari** | Intel I210/I225/I350 (`igb`, `igc`) yoki Realtek (`re`) | Virtual interfeyslar (`virtio-net`, `vmxnet3`, `e1000`) |
-| **Paket Kechikishi** | Minimal (0.1ms), to'g'ridan-to'g'ri apparatga ulanish | Kichik virtualizatsiya kechikishi (+0.2-0.5ms) |
-| **VLAN Boshqaruvi** | 802.1Q signali to'g'ridan-to'g'ri fizik switchga ketadi | Gipervizor virtual bridge'ida VLAN-aware bo'lishi shart |
-| **Moslashuvchanlik** | Uskunaga bog'liq, ko'chirish qiyin | Snapshot, klonlash va tezkor zaxira olish imkoniyati |
+Master va Backup holatini boshqaruvchi ikkita parametr mavjud:
+* `advbase`: E'lonlar oralig'i (standart: 1 soniya).
+* `advskew`: Kechikish koeffitsiyenti (0 dan 254 gacha).
+  * **Master Router:** `advskew = 0` (Har 1 soniyada darhol paket jo'natadi).
+  * **Backup Router:** `advskew = 100` (Kutadi. Agar 1 soniya + 100/256 soniya davomida Masterdan xabar kelmasa, o'zini MASTER deb e'lon qiladi!).
 
 ---
 
-## 5. Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)
+## 4. Virtualizatsiyada Eng Katta Tuzoq: Promiscuous Mode va MAC Spoofing
 
-1. **Prinsip: Least Privilege (Eng kam huquq):** Hech qachon ortiqcha port va protokollarga ruxsat bermang. Standart holatda barcha kirish taqiqlangan bo'lishi lozim.
-2. **Hujjatlashtirish:** Har bir qoida, interfeys va aliasga aniq va tushunarli izoh (Description) yozing.
-3. **Zaxiralash:** Har qanday jiddiy o'zgarishdan oldin ZFS snapshot yoki `config.xml` zaxira nusxasini oling.
-4. **Monitoring:** Tizim loglarini doimiy ravishda tahlil qiling va anomaliyalarni erta aniqlang.
+> [!CAUTION]
+> Agar siz pfSense ni Proxmox, VMware ESXi yoki VMware Workstation da klaster qilsangiz, 90% holatda CARP birinchi urinishda ishlamaydi!
+
+**Nega?** Chunki gipervizorning virtual switchlari xavfsizlik vajidan virtual mashinaga unga tegishli bo'lmagan MAC manzilni (`00:00:5e:00:01:XX`) ishlatishga ruxsat bermaydi:
+* **VMware ESXi / Workstation da:** Virtual Switch sozlamalarida quyidagi 3 ta parametrni **Accept** qilish SHART:
+  1. `Promiscuous Mode: Accept`
+  2. `MAC Address Changes: Accept`
+  3. `Forged Transmits: Accept`
+* **Proxmox VE da:** Linux Bridge o'zi o'tkazadi, lekin Proxmox Firewall moduli o'chirilgan bo'lishi lozim.
 
 ---
 
-## 6. Xulosa va O'z-o'zini Tekshirish Savollari
+## 5. Dedicated PFSYNC L2 Havolasi
 
-* Ushbu mavzudagi asosiy protokol qaysi RFC standartiga asoslangan?
-* Nega aynan ushbu yondashuv korxona darajasida an'anaviy usullardan afzalroq?
-* Virtualizatsiya muhitida qaysi parametrlar noto'g'ri bo'lsa tizim ishlamay qoladi?
-* Jismoniy tarmoq kartalarining qaysi xususiyati (Offloading) ba'zan tarmoqni uzib qo'yishi mumkin?
+Ikkita router o'rtasida holat almashinuvi uchun alohida jismoniy port (SYNC) ajratilishi shart:
+* Bu port umumiy switchga ulanmaydi! Ikkala server o'rtasida to'g'ridan-to'g'ri kabel orqali bog'lanadi.
+* Nega? Chunki `pfsync` paketlari shifrlanmagan bo'ladi va xavfsizlik devorining butun holat jadvalini tashiydi. Uni umumiy tarmoqqa chiqarish xavfsizlikka ziddir.
 
-Endi nazariyani mustahkamlash uchun **[LAB YO'RIQNOMASI](lab.md)** ga o'ting va amaliy laboratoriya ishini bajaring!
+---
+
+## 6. CARP Klasterida Multi-WAN Arxitekturasi
+
+Agar ikkala routerda ham Dual-WAN (2 ta provayder) bo'lsa, qanday ulanadi?
+```mermaid
+flowchart TD
+    subgraph WAN_SW1["ISP-1 L2 Switch (VLAN 100)"]
+        ISP1["Provayder 1"]
+    end
+    subgraph WAN_SW2["ISP-2 L2 Switch (VLAN 200)"]
+        ISP2["Provayder 2"]
+    end
+
+    WAN_SW1 -->|igb0: .2| FW1["FW-01 (Master)"]
+    WAN_SW1 -->|igb0: .3| FW2["FW-02 (Backup)"]
+    CARP_WAN1["CARP VIP ISP1: .1"] -.-> FW1
+
+    WAN_SW2 -->|igb1: .2| FW1
+    WAN_SW2 -->|igb1: .3| FW2
+    CARP_WAN2["CARP VIP ISP2: .1"] -.-> FW1
+
+    FW1 <== "Dedicated SYNC Port: igb3" ==> FW2
+    FW1 -->|igb2: .2| LAN_SW["Ichki LAN Switch"]
+    FW2 -->|igb2: .3| LAN_SW
+    CARP_LAN["CARP VIP LAN: 10.10.10.1"] -.-> FW1
+```
+Har bir WAN kanali uchun alohida tashqi L2 switch qo'yiladi va har bir WAN segmentida alohida CARP VIP olinadi!

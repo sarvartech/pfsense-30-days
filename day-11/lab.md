@@ -1,116 +1,87 @@
-# 🛠️ [KUN-11] LAB QO'LLANMASI: OpenVPN Site-to-Site Tunneling va Client Specific Overrides (CSO)
+# 🛠️ [KUN-11] LAB: OpenVPN Site-to-Site Tunneling va CSO Amaliyoti
 
-**Mavzu:** OpenVPN Site-to-Site Tunneling va Client Specific Overrides (CSO)  
-**Bosqich:** 2-Hafta: Marshrutlash, Multi-WAN va VPN  
-**Nazariy Ma'ruza:** [Lecture darsini o'qish](lecture.md)
-
----
-
-## 🎯 1. Real Korxona Muammosi (Business Problem Statement)
-
-> **Real Muammo:** Bosh ofis (Headquarters) va Samarqanddagi filiali (Branch Office) o'rtasida doimiy xavfsiz aloqa zarur. Filial xodimlari bosh ofisdagi serverlarga to'g'ridan-to'g'ri murojaat qilishi, shuningdek kelajakda boshqa filiallar qo'shilsa ularning IP diapazonlari to'qnashmasligi lozim.
-
-Ushbu laboratoriya mashg'ulotida siz ushbu real muammoni to'liq hal qilasiz, tizimni xalqaro standartlar asosida xavfsiz va barqaror qilib sozlaysiz.
+**Mavzu:** HQ va Filial o'rtasida to'liq marshrutlangan L3 tunnel qurish  
+**Nazariya:** [Lecture darsini o'qish](lecture.md)
 
 ---
 
-## 🗺️ 2. Laboratoriya Topologiyasi va IP Sxemasi
+## 🎯 1. Real Korxona Muammosi
 
-```mermaid
-flowchart LR
-    subgraph WAN_ZONE["Tashqi Tarmoq (WAN)"]
-        ISP["Internet Provayder (Uplink)"]
-    end
-
-    subgraph PFSENSE["pfSense Firewall (Lab Gateway)"]
-        direction TB
-        FW["pfSense 2.7.2 CE\nIP: 10.10.10.1 / WAN: DHCP"]
-    end
-
-    subgraph INTERNAL["Ichki Tarmoq (Clients & Servers)"]
-        SRV["Server (Ubuntu/Nginx)\nIP: 10.10.20.x"]
-        PC["Admin / Client PC\nIP: 10.10.10.x"]
-    end
-
-    ISP === PFSENSE
-    PFSENSE === SRV
-    PFSENSE === PC
-```
-
-### 📋 Laboratoriya IP Jadvali
-
-| Interfeys / Qurilma | Turi | IP Manzil / Subnet | Izoh |
-|---|---|---|---|
-| `WAN` | Tashqi | Provayder IP (DHCP / Static) | Internetga chiqish |
-| `LAN` (MGMT) | Ichki | `10.10.10.1/24` | Boshqaruv va admin tarmog'i |
-| `DMZ / SERVERS` | Segment | `10.10.20.1/24` | Korporativ serverlar |
-| `Mijoz Mashinasi` | Test Client | `10.10.10.50` (DHCP) | Sinov o'tkazuvchi kompyuter |
+> **Biznes Muammo:** Kompaniyaning Toshkentdagi Bosh ofisida yagona 1C ERP va fayl serveri joylashgan. Samarqanddagi yangi ochilgan filial xodimlari ushbu serverga kira olmayapti. Filialda oq IP manzil yo'q (mobil provayder NAT ortida). Shunday tunnel qurish kerakki, filial xodimlari 1C serverga to'g'ridan-to'g'ri `10.10.20.50` lokal IP si orqali ulanishsin va filialdagi IP kameralarni Bosh ofis xavfsizlik xizmati ko'ra olsin.
 
 ---
 
-## 🖥️ 3. Talabalar uchun Laboratoriya Muhiti (Ikkala Variant)
+## 🗺️ 2. Topologiya va IP Rejasi
 
-Talaba o'zida mavjud imkoniyatga qarab **Variant A** yoki **Variant B** dan birini tanlaydi:
-
-### 🔹 VARIANT A: Real Jismoniy pfSense (Hardware Appliance / Mini-PC)
-* **Hardware:** Ikkita alohida jismoniy pfSense qurilmasi (biri Bosh ofisda, ikkinchisi Filialda).
-* Bosh ofisda oq (Public) IP bo'lishi kifoya, filial esa NAT yoki hatto dinamik IP ortida bo'lsa ham tunnel ishlayveradi.
-
-### 🔹 VARIANT B: Virtual Server pfSense (Proxmox VE / VMware Workstation)
-* **Proxmox / VMware:** Ikkita pfSense VM yaratiladi: `pfSense-HQ` (LAN: 10.10.0.0/16) va `pfSense-Branch` (LAN: 10.20.0.0/16).
-* Ularning WAN lari umumiy virtual switchga ulanadi.
+| Lokatsiya | Router Nomi | WAN IP | LAN Subnet | Tunnel IP |
+|---|---|---|---|---|
+| **Bosh Ofis** | `pfSense-HQ` | `192.168.100.10` (Static) | `10.10.0.0/16` | `10.250.0.1/24` |
+| **Filial** | `pfSense-Branch` | DHCP (NAT ortida) | `10.20.0.0/16` | `10.250.0.2/24` |
 
 ---
 
-## ⚙️ 4. Bosqichma-bosqich Amaliy Sozlash Qo'llanmasi (Step-by-Step)
+## ⚙️ 3. Qadam-baqadam Sozlash
 
-1. **Qadam:** Bosh ofisda (HQ): `VPN` -> `OpenVPN` -> `Servers`. Server Mode: `Peer to Peer (SSL/TLS)`, Protocol: `UDP on IPv4`, IPv4 Tunnel Network: `10.250.0.0/24`.
-2. **Qadam:** IPv4 Local Network: `10.10.0.0/16`, IPv4 Remote Network: bo'sh qoldiriladi (CSO orqali beriladi).
-3. **Qadam:** Filial uchun Client Certificate yaratish: Common Name: `branch-samarkand`.
-4. **Qadam:** `VPN` -> `OpenVPN` -> `Client Specific Overrides`: Yangi CSO qo'shish. Common Name: `branch-samarkand`, IPv4 Remote Network/s: `10.20.0.0/16`.
-5. **Qadam:** Filialda (Branch): `VPN` -> `OpenVPN` -> `Clients`. Server host: HQ WAN IP, TLS Authentication, CA va `branch-samarkand` sertifikatlarini yuklash.
-6. **Qadam:** IPv4 Tunnel Network: `10.250.0.0/24`, IPv4 Remote Network: `10.10.0.0/16`.
-7. **Qadam:** Ikkala tomonda `Firewall` -> `Rules` -> `OpenVPN` bo'limida barcha trafikka ruxsat beruvchi qoida kiritish.
+### 1-Qadam: Bosh Ofisda (HQ) PKI va Sertifikatlarni Tayyorlash
+1. `System -> Cert. Manager -> Certificates` ga kiring.
+2. Server sertifikatini yarating: `HQ_S2S_Server_Cert` (Type: Server Certificate).
+3. Filial uchun alohida mijoz sertifikatini yarating:
+   * Common Name: `branch-samarkand` (KRITIK: bu nom CSO da kerak bo'ladi!).
+   * Type: User Certificate.
 
+### 2-Qadam: HQ da OpenVPN Serverini Sozlash
+1. `VPN -> OpenVPN -> Servers` -> **Add**:
+   * Server Mode: `Peer to Peer (SSL/TLS)`
+   * Protocol: `UDP on IPv4`, Interface: `WAN`, Port: `1195`
+   * Server Certificate: `HQ_S2S_Server_Cert`
+   * IPv4 Tunnel Network: `10.250.0.0/24`
+   * IPv4 Local Network/s: `10.10.0.0/16`
+   * IPv4 Remote Network/s: *Bo'sh qoldiring* (chunki bir nechta filial bo'ladi).
+2. Saqlang.
 
----
+### 3-Qadam: HQ da Client Specific Overrides (CSO) Yaratish
+1. `VPN -> OpenVPN -> Client Specific Overrides` yorlig'iga o'ting, **Add** bosing:
+   * Common Name: `branch-samarkand` (Mijoz sertifikati bilan 100% bir xil bo'lishi shart!).
+   * IPv4 Remote Network/s: `10.20.0.0/16` (Filialning ichki LAN tarmog'i).
+2. Saqlang.
 
-## 🧪 5. Verifikatsiya va Tekshirish (Testing & CLI)
+### 4-Qadam: Filialda (Branch) Mijozni Sozlash
+1. Filial pfSense siga HQ ning `Corp_Internal_CA` Root sertifikatini va `branch-samarkand` mijoz sertifikatini import qiling (`System -> Cert. Manager`).
+2. `VPN -> OpenVPN -> Clients` -> **Add**:
+   * Server Mode: `Peer to Peer (SSL/TLS)`
+   * Server host or address: HQ ning WAN IP si (`192.168.100.10`).
+   * Server port: `1195`
+   * Client Certificate: `branch-samarkand`
+   * IPv4 Tunnel Network: `10.250.0.0/24`
+   * IPv4 Remote Network/s: `10.10.0.0/16` (Bosh ofis tarmog'i).
+3. Saqlang.
 
-Har bir amaliyot tugagach, quyidagi buyruqlar yordamida natijani qat'iy tekshiring:
-
-**Ikkala pfSense da ham tunnel 'up' holatdaligini ko'rish:**
-```bash
-Status -> OpenVPN
-```
-
-**Bosh ofis DMZ serveriga ping yetib borishini tekshirish:**
-```bash
-Filial LAN kompyuteridan: ping 10.10.20.80
-```
-
-**Filialdagi printer yoki kompyuterga ping borishini tekshirish:**
-```bash
-Bosh ofis kompyuteridan: ping 10.20.0.50
-```
-
-**Paketlar VPN tunnel 10.250.0.1 orqali o'tayotganini tasdiqlash:**
-```bash
-tracert 10.10.20.80
-```
-
-
-
----
-
-## 🚨 6. Eng Ko'p Uchraydigan Xatolar va Troubleshooting
-
-* ⚠️ **Muammo: Tunnel ko'tarildi, lekin HQ dan Branch ga ping bormayapti (Branch dan HQ ga esa boradi). Yechim: CSO da `iroute 10.20.0.0 255.255.0.0` yozilmagan yoki CN xato yozilgan bo'ladi.**
-* ⚠️ **Muammo: IP to'qnashuvi. Yechim: Ikkala tomonda ham LAN subnetlari bir xil (masalan ikkalasi ham 192.168.1.0/24) bo'lmasligi shart; har bir filial o'ziga xos subnetga ega bo'lishi kerak.**
-
+### 5-Qadam: Firewall Qoidalarini Ochish
+* Ikkala pfSense da ham `Firewall -> Rules -> OpenVPN` interfeysiga kirib, `Pass Any to Any` qoidasini qo'shing.
+* HQ WAN interfeysida UDP port 1195 ga ruxsat bering.
 
 ---
 
-## 🏆 7. Mustaqil Amaliy Topshiriq (Student Challenge / Homework)
+## 🧪 4. Verifikatsiya va Sinovlar
 
-> 📝 **Vazifa:** Ikkinchi filial uchun (`branch-bukhara`, LAN: `10.30.0.0/16`) yangi sertifikat va CSO sozlang va uchala nuqta o'rtasida to'liq marshrutlashni ta'minlang.
+1. **Tunnel Holati:**
+   * Ikkala routerda ham `Status -> OpenVPN` sahifasiga kiring. Holat yashil **up** bo'lishi va tunnel IP lari (`10.250.0.1` va `10.250.0.2`) ko'rinishi lozim.
+2. **Filialdan Bosh Ofisga Ping:**
+   Filial LAN kompyuteridan (`10.20.0.50`):
+   ```bash
+   ping 10.10.20.50
+   tracert 10.10.20.50
+   ```
+   *Paketlar VPN tunnel orqali o'tib Bosh ofis serveriga yetib borishi kerak.*
+3. **Bosh Ofisdan Filialga Ping (Ikki Tomonlama Aloqa):**
+   Bosh ofis serveridan (`10.10.20.50`):
+   ```bash
+   ping 10.20.0.50
+   ```
+   *Agar javob kelsa, demak `iroute` va CSO 100% to'g'ri ishladi!*
+
+---
+
+## 🚨 5. Troubleshooting
+* ⚠️ **Muammo: Filialdan HQ ga ping boradi, lekin HQ dan filialga bormayapti.**  
+  *Yechim:* Bu eng mashhur xato. HQ da CSO yaratilmagan yoki Common Name maydonidagi nom sertifikat nomi (`branch-samarkand`) bilan mos kelmagan. Shuningdek, HQ Routing jadvalida `netstat -rn` orqali 10.20.0.0/16 yo'nalishi bor-yo'qligini tekshiring.

@@ -1,95 +1,113 @@
-# 📚 [KUN-08] LECTURE: Multi-WAN: Dual ISP Failover va Policy-Based Load Balancing
+# 📚 [KUN-08] LECTURE: Multi-WAN Masterclass — Dual ISP Failover, Policy-Based Routing va Load Balancing
 
 **Kategoriya:** 2-Hafta: Marshrutlash, Multi-WAN va VPN  
-**Dars Maqsadi:** Ushbu darsda talabalar Multi-WAN: Dual ISP Failover va Policy-Based Load Balancing bo'yicha to'liq nazariy asoslarni, FreeBSD va pfSense arxitekturasini, tarmoq protokollari standartlarini hamda korxona darajasidagi (Enterprise) qo'llanish amaliyotini o'rganadilar.
+**Maqsad:** Korxonada internet uzilishlariga barham berish (99.99% Uptime), bir vaqtning o'zida ikkita turli texnologiyadagi provayderlarni (Optika + Zaxira LTE/Optika) ulash, trafikni aqlli taqsimlash (Load Balancing) va avtomatik zaxiraga o'tish (Failover) arxitekturasini o'rganish.
 
 ---
 
 ## 🧭 Mundarija
-1. [Mavzuning Mohiyati va Biznes Ahamiyati](#1-mavzuning-mohiyati-va-biznes-ahamiyati)
-2. [Nazariy Asoslar va Protokol Spetsifikatsiyalari](#2-nazariy-asoslar-va-protokol-spetsifikatsiyalari)
-3. [pfSense va FreeBSD Ichki Arxitekturasi](#3-pfsense-va-freebsd-ichki-arxitekturasi)
-4. [Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili](#4-jismoniy-uskuna-hardware-vs-virtualizatsiya-tahlili)
-5. [Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)](#5-production-xavfsizlik-qoidalari)
-6. [Xulosa va O'z-o'zini Tekshirish Savollari](#6-xulosa-va-savollar)
+1. [Multi-WAN Arxitekturasi va Korxona Ehtiyoji](#1-multi-wan-arxitekturasi-va-korxona-ehtiyoji)
+2. [dpinger va Gateway Monitoring Mexanizmi](#2-dpinger-va-gateway-monitoring-mexanizmi)
+3. [Gateway Groups Mantiqi: Tiering va Triggers](#3-gateway-groups-mantiqi-tiering-va-triggers)
+4. [Policy-Based Routing (PBR) va Qoidalar Tartibi](#4-policy-based-routing-pbr-va-qoidalar-tartibi)
+5. [Sticky Connections va Sessiyalar Saqlanishi](#5-sticky-connections-va-sessiyalar-saqlanishi)
+6. [CARP Klasterida Multi-WAN Qanday Tashkil Etiladi?](#6-carp-klasterida-multi-wan-qanday-tashkil-etiladi)
+7. [Inbound Multi-WAN (DNS Round-Robin va Port Forward)](#7-inbound-multi-wan)
+8. [Xulosa va O'z-o'zini Tekshirish](#8-xulosa)
 
 ---
 
-## 1. Mavzuning Mohiyati va Biznes Ahamiyati
+## 1. Multi-WAN Arxitekturasi va Korxona Ehtiyoji
 
-Zamonaviy korporativ IT infratuzilmasida **Multi-WAN: Dual ISP Failover va Policy-Based Load Balancing** shunchaki sozlama emas, balki tarmoq xavfsizligi, barqarorligi va biznes jarayonlarining uzluksizligini (Business Continuity) ta'minlovchi strategik element hisoblanadi. 
+Zamonaviy biznesda 1 soatlik internet uzilishi (Downtime) kompaniyaga millionlab so'm zarar, to'xtab qolgan to'lov terminallari, yetib bormagan bank o'tkazmalari va qoniqarsiz mijozlarni anglatadi. Yagona internet provayderiga (SPOF - Single Point of Failure) bog'lanib qolish jiddiy xatodir.
 
-Noto'g'ri loyihalashtirilgan arxitektura oqibatida:
-* Tarmoqda xavfsizlik zaifliklari va ruxsatsiz kirish (Breach) xavfi ortadi;
-* Katta hajmdagi paketlar oqimida kechikish (Latency) va paket yo'qotishlar (Packet drops) kuzatiladi;
-* Muammo yuzaga kelganda nosozlikni aniqlash (Troubleshooting) soatlab vaqt talab qiladi.
+Multi-WAN konsepsiyasi kamida ikkita mustaqil ISP kanalini pfSense ga ulashni nazarda tutadi:
+* **Asosiy Provayder (ISP-1 / Primary):** Katta tezlikdagi optik tolali kanal (masalan, 200 Mbps).
+* **Zaxira Provayder (ISP-2 / Secondary):** Mustaqil boshqa aloqa operatori (masalan, ikkinchi optika yoki 4G/5G LTE/Mikroto'lqinli radio-kanal).
 
-Ushbu ma'ruzaning maqsadi — sizga har bir tugma va har bir buyruq ortida qanday jarayon yotganini chuqur tushuntirishdir.
-
----
-
-## 2. Nazariy Asoslar va Protokol Spetsifikatsiyalari
-
-### 1. Ko'p provayderli arxitektura (Multi-Homed Network): Uptime 99.9% ga erishish talabi.
-
-Ushbu bo'limda Ko'p provayderli arxitektura (Multi-Homed Network) mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 2. Gateway Monitoring: `dpinger` servisi, ICMP orqali probing, Packet Loss va Latency chegaralari (Thresholds).
-
-Ushbu bo'limda Gateway Monitoring mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 3. Gateway Groups arxitekturasi: Tier 1 + Tier 2 (Active/Passive Failover) va Tier 1 + Tier 1 (Active/Active Load Balancing).
-
-Ushbu bo'limda Gateway Groups arxitekturasi mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 4. Policy-Based Routing (PBR): Standart default shlyuzni aylanib o'tib, firewall qoidalarining 'Advanced > Gateway' qismida aniq shlyuz guruhini majburiy belgilash.
-
-Ushbu bo'limda Policy-Based Routing (PBR) mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-### 5. Sticky Connections muammosi: HTTPS sessiyalar har xil IP dan borsa bank saytlari va CRM xavfsizlik vajidan foydalanuvchini tizimdan chiqarib yuboradi — yechimi: Sticky Connections.
-
-Ushbu bo'limda Sticky Connections muammosi mavzusining chuqur nazariy va amaliy jihatlari yoritiladi. Tarmoq arxitekturasi va tizim xavfsizligida bu konsepsiya eng muhim bo'g'inlardan biridir. FreeBSD yadrosining ishlashi, paket filtrlash mantiqi va production talablari hisobga olingan holda tahlil qilinadi.
-
-
+```mermaid
+flowchart TD
+    ISP1["ISP-1 (Optika - 200 Mbps)
+Gateway: 192.168.100.1"] -->|WAN1: igb0| PFS["pfSense Multi-WAN Gateway"]
+    ISP2["ISP-2 (Zaxira LTE/Optika - 50 Mbps)
+Gateway: 192.168.200.1"] -->|WAN2: igb1| PFS
+    PFS -->|dpinger ICMP Probe 1.1.1.1| ISP1
+    PFS -->|dpinger ICMP Probe 8.8.8.8| ISP2
+    PFS -->|LAN: igb2| CORP["Korporativ Tarmoq (10.10.10.0/24)"]
+    PFS -->|DMZ: igb3| SERVERS["Serverlar Segmenti (10.10.20.0/24)"]
+```
 
 ---
 
-## 3. pfSense va FreeBSD Ichki Arxitekturasi
+## 2. dpinger va Gateway Monitoring Mexanizmi
 
-pfSense FreeBSD operatsion tizimiga asoslanganligi sababli, barcha tarmoq amallari FreeBSD yadrosining yuqori unumdor tarmoq steki orqali bajariladi:
-* **Kernel & User Space:** Paketlarni qayta ishlash to'g'ridan-to'g'ri yadroda (`pf`, `dummynet`, `netmap`, `if_wg`) kechadi, foydalanuvchi interfeysi (PHP WebGUI) esa faqat konfiguratsiyani (`config.xml`) boshqarish va uni tizim buyruqlariga aylantirish uchun xizmat qiladi.
-* **State Table (Holat jadvali):** Barcha aktiv sessiyalar xotirada tezkor hash-jadval sifatida saqlanadi. Har bir yangi ulanish xavfsizlik qoidalariga solishtiriladi, keyingi paketlar esa darhol holat jadvali orqali o'tkaziladi.
-* **Resurs Boshqaruvi:** ZFS ARC kesh mexanizmi va mbuf (Memory Buffer) klasterlari tarmoq kartalaridan kelayotgan paketlarni uzluksiz qabul qilishni ta'minlaydi.
-
----
-
-## 4. Jismoniy Uskuna (Hardware) vs Virtualizatsiya Tahlili
-
-Talabalar ushbu texnologiyani ikki xil muhitda qo'llashlari mumkin:
-
-| Parametr | Jismoniy Uskuna (Real Hardware pfSense) | Virtualizatsiya (Proxmox VE / VMware) |
-|---|---|---|
-| **Tarmoq Kartalari** | Intel I210/I225/I350 (`igb`, `igc`) yoki Realtek (`re`) | Virtual interfeyslar (`virtio-net`, `vmxnet3`, `e1000`) |
-| **Paket Kechikishi** | Minimal (0.1ms), to'g'ridan-to'g'ri apparatga ulanish | Kichik virtualizatsiya kechikishi (+0.2-0.5ms) |
-| **VLAN Boshqaruvi** | 802.1Q signali to'g'ridan-to'g'ri fizik switchga ketadi | Gipervizor virtual bridge'ida VLAN-aware bo'lishi shart |
-| **Moslashuvchanlik** | Uskunaga bog'liq, ko'chirish qiyin | Snapshot, klonlash va tezkor zaxira olish imkoniyati |
+pfSense har bir shlyuzning holatini FreeBSD ning maxsus `dpinger` servisi orqali har soniyada tekshirib turadi:
+* **Monitor IP:** Shlyuzning o'zini emas, internetdagi global va ishonchli IP manzillarni tekshirish shart. Chunki provayder modemi ishlab turgan bo'lsa-da, tashqi magistral uzilgan bo'lishi mumkin.
+  * WAN1 uchun: `1.1.1.1` (Cloudflare)
+  * WAN2 uchun: `8.8.8.8` (Google)
+* **Thresholds (Chegaralar):**
+  * **Latency:** Standart holatda 500ms dan oshsa, kanal sekinlashgan deb hisoblanadi.
+  * **Packet Loss:** 20% dan ortiq paket yo'qolsa, kanal yaroqsiz deb baholanadi.
 
 ---
 
-## 5. Production Xavfsizlik Qoidalari va Eng Yaxshi Amaliyotlar (Best Practices)
+## 3. Gateway Groups Mantiqi: Tiering va Triggers
 
-1. **Prinsip: Least Privilege (Eng kam huquq):** Hech qachon ortiqcha port va protokollarga ruxsat bermang. Standart holatda barcha kirish taqiqlangan bo'lishi lozim.
-2. **Hujjatlashtirish:** Har bir qoida, interfeys va aliasga aniq va tushunarli izoh (Description) yozing.
-3. **Zaxiralash:** Har qanday jiddiy o'zgarishdan oldin ZFS snapshot yoki `config.xml` zaxira nusxasini oling.
-4. **Monitoring:** Tizim loglarini doimiy ravishda tahlil qiling va anomaliyalarni erta aniqlang.
+pfSense shlyuzlarni guruhlash uchun `Gateway Groups` vositasidan foydalanadi:
+
+| Rejim Nomi | WAN1 Tier | WAN2 Tier | Trigger | Ishlash Printsipi |
+|---|:---:|:---:|---|---|
+| **Failover (Active/Passive)** | **Tier 1** | **Tier 2** | `Member Down` | Barcha trafik WAN1 orqali ketadi. Faqat WAN1 o'chgandagina WAN2 ga o'tiladi. |
+| **Load Balancing (Active/Active)** | **Tier 1** | **Tier 1** | `Packet Loss or High Latency` | Paketlar oqimi ikkala kanal bo'yicha teng (yoki og'irligiga qarab) taqsimlanadi. |
+| **Degraded Failover** | **Tier 1** | **Tier 2** | `Packet Loss` | Agar WAN1 da paket yo'qotish 10% dan oshsa, avtomat WAN2 ga o'tiladi. |
 
 ---
 
-## 6. Xulosa va O'z-o'zini Tekshirish Savollari
+## 4. Policy-Based Routing (PBR) va Qoidalar Tartibi
 
-* Ushbu mavzudagi asosiy protokol qaysi RFC standartiga asoslangan?
-* Nega aynan ushbu yondashuv korxona darajasida an'anaviy usullardan afzalroq?
-* Virtualizatsiya muhitida qaysi parametrlar noto'g'ri bo'lsa tizim ishlamay qoladi?
-* Jismoniy tarmoq kartalarining qaysi xususiyati (Offloading) ba'zan tarmoqni uzib qo'yishi mumkin?
+pfSense da standart holatda barcha trafik tizimning `Default Gateway` si orqali chiqadi. Shlyuz guruhlarini ishlatish uchun **Policy-Based Routing (PBR)** qoidalari yoziladi:
 
-Endi nazariyani mustahkamlash uchun **[LAB YO'RIQNOMASI](lab.md)** ga o'ting va amaliy laboratoriya ishini bajaring!
+> [!WARNING]
+> **Kritik Xato:** Agar LAN interfeysida eng yuqori qoidaga Gateway sifatida `GW_GROUP` qo'yilsa, ichki tarmoqlararo (Inter-VLAN) va pfSense ning o'ziga boruvchi (DNS) so'rovlar ham tashqi internetga yo'naltirilib uzilib qoladi!
+
+### To'g'ri Qoidalar Tartibi:
+1. **Pass Rule (Local Traffic):** Destination: `LAN Subnets / RFC1918_Subnets` -> Gateway: `Default` (Ichki trafik router ichida qolsin).
+2. **Pass Rule (Local DNS):** Destination: `This Firewall (self)`, Port: `53` -> Gateway: `Default`.
+3. **Pass Rule (Internet PBR):** Destination: `*` (Any), Gateway: `GW_FAILOVER` yoki `GW_LOADBALANCE`.
+
+---
+
+## 5. Sticky Connections va Sessiyalar Saqlanishi
+
+Load Balancing (Round-Robin) rejimida ikkala provayder parallel ishlayotganda quyidagi muammo yuzaga keladi:
+* Foydalanuvchi Bank saytiga yoki korporativ CRM ga kirganda, birinchi so'rov WAN1 (IP: `203.0.113.5`) orqali boradi.
+* Keyingi sahifani yuklaganda PBR so'rovni WAN2 (IP: `198.51.100.14`) ga tashlaydi.
+* Bank tizimi bitta sessiyada mijoz IP manzili birdaniga o'zgarib ketganini ko'rib, xavfsizlik vajidan sessiyani bekor qiladi (Logout).
+
+**Yechim:** `System -> Advanced -> Miscellaneous` bo'limida **`Use sticky connections`** parametrini yoqish. pfSense mijozning IP manzilini xotiraga oladi va uning barcha tashqi sessiyalarini belgilangan vaqt davomida (masalan, 300 soniya) aynan bitta WAN kanali orqali jo'natadi.
+
+---
+
+## 6. CARP Klasterida Multi-WAN Qanday Tashkil Etiladi?
+
+Yuqori barqarorlikdagi (CARP) ikkita firewall mavjud bo'lganda, har ikkala firewall ikkala provayderga ulanishi shart:
+* **Arxitektura:** Provayder-1 kabeli kichik L2 switchga (yoki VLAN 100 ga) ulanadi. Switchdan ikkita kabel chiqib, FW-01 WAN1 ga va FW-02 WAN1 ga boradi.
+* Provayder-2 ham alohida switchga (yoki VLAN 200 ga) ulanadi va FW-01 WAN2 hamda FW-02 WAN2 ga boradi.
+* Har bir provayder segmentida **CARP VIP** olinadi (masalan, WAN1 CARP VIP va WAN2 CARP VIP).
+* Barcha chiquvchi NAT qoidalari shaxsiy interfeys IP ga emas, aynan tegishli CARP VIP ga bog'lanadi.
+
+---
+
+## 7. Inbound Multi-WAN
+
+Agar ichki DMZ da Web-server joylashgan bo'lsa va unga tashqaridan ikkala provayder orqali kirish kerak bo'lsa:
+1. Har ikkala WAN da alohida Port Forward qoidasi yaratiladi.
+2. Tashqi domenga (masalan `www.company.uz`) ikkita DNS `A` yozuvi biriktiriladi:
+   * `A www.company.uz 203.0.113.5` (ISP1)
+   * `A www.company.uz 198.51.100.14` (ISP2)
+3. pfSense dagi `reply-to` mexanizmi tufayli: WAN1 dan kirib kelgan paketga javob majburiy ravishda WAN1 orqali, WAN2 dan kirgan so'rovga javob esa WAN2 orqali qaytariladi!
+
+---
+
+## 8. Xulosa
+Multi-WAN — korxonaning uzluksiz ishlash kafolatidir. To'g'ri sozlangan dpinger, PBR va Sticky Connections tizimi foydalanuvchilarga sezdirmasdan avariya holatlarini yengib o'tish imkonini beradi.

@@ -1,116 +1,64 @@
-# 🛠️ [KUN-20] LAB QO'LLANMASI: High Availability (CARP) — 2-Qism: pfsync va XML-RPC Zero-Downtime Failover
+# 🛠️ [KUN-20] LAB: pfsync va XML-RPC Sinxronizatsiyasi bilan Zero-Downtime Failover Mashqi
 
-**Mavzu:** High Availability (CARP) — 2-Qism: pfsync va XML-RPC Zero-Downtime Failover  
-**Bosqich:** 3-Hafta: Kiberxavfsizlik, UTM, QoS va HA  
-**Nazariy Ma'ruza:** [Lecture darsini o'qish](lecture.md)
-
----
-
-## 🎯 1. Real Korxona Muammosi (Business Problem Statement)
-
-> **Real Muammo:** Routerlar almashganda tarmoqdagi barcha aktiv ulanishlar (Zoom qo'ng'iroqlari, yuklab olinayotgan katta fayllar, SSH sessiyalar) uzilib ketmoqda, chunki zaxira routerda 'State Table' (ochiq sessiyalar xotirasi) mavjud emas. Shuningdek, qoidalarni ikkala routerga ikki marta qo'lda yozish charchatmoqda.
-
-Ushbu laboratoriya mashg'ulotida siz ushbu real muammoni to'liq hal qilasiz, tizimni xalqaro standartlar asosida xavfsiz va barqaror qilib sozlaysiz.
+**Mavzu:** Jonli klasterda konfiguratsiyani sinxronlash va Master o'chirilganda 0s uzilish testi  
+**Nazariya:** [Lecture darsini o'qish](lecture.md)
 
 ---
 
-## 🗺️ 2. Laboratoriya Topologiyasi va IP Sxemasi
+## 🎯 1. Real Korxona Muammosi
 
-```mermaid
-flowchart LR
-    subgraph WAN_ZONE["Tashqi Tarmoq (WAN)"]
-        ISP["Internet Provayder (Uplink)"]
-    end
-
-    subgraph PFSENSE["pfSense Firewall (Lab Gateway)"]
-        direction TB
-        FW["pfSense 2.7.2 CE\nIP: 10.10.10.1 / WAN: DHCP"]
-    end
-
-    subgraph INTERNAL["Ichki Tarmoq (Clients & Servers)"]
-        SRV["Server (Ubuntu/Nginx)\nIP: 10.10.20.x"]
-        PC["Admin / Client PC\nIP: 10.10.10.x"]
-    end
-
-    ISP === PFSENSE
-    PFSENSE === SRV
-    PFSENSE === PC
-```
-
-### 📋 Laboratoriya IP Jadvali
-
-| Interfeys / Qurilma | Turi | IP Manzil / Subnet | Izoh |
-|---|---|---|---|
-| `WAN` | Tashqi | Provayder IP (DHCP / Static) | Internetga chiqish |
-| `LAN` (MGMT) | Ichki | `10.10.10.1/24` | Boshqaruv va admin tarmog'i |
-| `DMZ / SERVERS` | Segment | `10.10.20.1/24` | Korporativ serverlar |
-| `Mijoz Mashinasi` | Test Client | `10.10.10.50` (DHCP) | Sinov o'tkazuvchi kompyuter |
+> **Biznes Muammo:** Rahbariyat Zoom orqali muhim xalqaro investorlar bilan video konferentsiya o'tkazmoqda. Shu vaqtda asosiy firewall apparatida quvvat bloki portlab o'chib qoldi. Tizim shunday sozlangan bo'lishi kerakki, video qo'ng'iroq bir soniyaga ham to'xtamasin va investorlar nosozlik yuz berganini umuman sezmasin (Zero-Downtime).
 
 ---
 
-## 🖥️ 3. Talabalar uchun Laboratoriya Muhiti (Ikkala Variant)
+## ⚙️ 2. Qadam-baqadam Sozlash
 
-Talaba o'zida mavjud imkoniyatga qarab **Variant A** yoki **Variant B** dan birini tanlaydi:
+### 1-Qadam: FW-01 (Master) da High Availability Sync Sozlash
+1. `System -> High Avail. Sync` bo'limiga kiring.
+2. **State Synchronization Settings (pfsync):**
+   * Synchronize States: **Katakchani yoqing**.
+   * Synchronize Interface: `SYNC`
+   * Synchronize Peer IP: `192.168.99.2` (FW-02 SYNC IP si).
+3. **Configuration Synchronization Settings (XMLRPC Sync):**
+   * Synchronize Config to IP: `192.168.99.2`
+   * Remote System Username: `admin`
+   * Remote System Password: *(FW-02 ning admin paroli)*
+   * Sinxronlanadigan qismlarni belgilang:
+     * [x] Synchronize Firewall Rules
+     * [x] Synchronize Firewall Aliases
+     * [x] Synchronize NAT
+     * [x] Synchronize Virtual IPs
+     * [x] Synchronize Certificates
+     * [x] Synchronize OpenVPN
+4. Saqlang.
 
-### 🔹 VARIANT A: Real Jismoniy pfSense (Hardware Appliance / Mini-PC)
-* **Hardware:** Ikkala serverning xususiyatlari, interfeys nomlari (`igb0`, `igb1`, `igb2`) mutlaqo bir xil bo'lishi tavsiya etiladi.
-* Agar interfeys nomlari har xil bo'lsa (masalan birida `igb0`, ikkinchisida `re0`), XML-RPC interfeys sinxronizatsiyasida muammo chiqishi mumkin.
-
-### 🔹 VARIANT B: Virtual Server pfSense (Proxmox VE / VMware Workstation)
-* **Proxmox / VMware:** Ikkala VM ga bir xil tarmoq adapterlari (masalan ikkalasida ham `vtnet0-2` yoki `vmx0-2`) biriktirilgan bo'lishi shart.
+### 2-Qadam: FW-02 (Backup) da pfsync ni Yoqish
+1. FW-02 da: `System -> High Avail. Sync` ga kiring.
+2. Synchronize States: **Katakchani yoqing**.
+3. Synchronize Interface: `SYNC`.
+4. Synchronize Peer IP: `192.168.99.1` (FW-01 SYNC IP si).
+5. **DIQQAT:** XMLRPC Sync bo'limidagi barcha katakchalarni **BO'SH** qoldiring! (Backup router Masterga hech qachon konfiguratsiya yozmasligi kerak). Saqlang.
 
 ---
 
-## ⚙️ 4. Bosqichma-bosqich Amaliy Sozlash Qo'llanmasi (Step-by-Step)
+## 🧪 3. Verifikatsiya va Zero-Downtime Sinovi
 
-1. **Qadam:** FW-01 (Master) da: `System` -> `High Avail. Sync` bo'limiga kirish.
-2. **Qadam:** `State Synchronization Settings (pfsync)`: 'Synchronize States' katakchasini yoqish, Synchronize Interface: `SYNC`, Remote Backup IP: `192.168.99.2`.
-3. **Qadam:** `XMLRPC Sync`: 'Synchronize Config to IP': `192.168.99.2`, Remote System Username: `admin`, Remote Password: (FW-02 paroli).
-4. **Qadam:** Sinxronlanadigan bandlarni tanlash: Firewall Rules, Aliases, NAT, Virtual IPs, DHCP Server va boshqalar.
-5. **Qadam:** FW-02 (Backup) da: Faqat pfsync ni yoqish (Synchronize Interface: `SYNC`, Remote IP: `192.168.99.1`), lekin XMLRPC Sync ni BO'SH qoldirish (zaxira asosiyga yozmasligi uchun).
-6. **Qadam:** FW-01 da yangi sinov Firewall Alias yaratish va FW-02 ga o'tib, u avtomatik ko'chib o'tganini tekshirish.
+### 1. XML-RPC Sinovi:
+1. FW-01 (Master) da yangi Firewall Alias yarating: Name: `Test_Sync_Alias`, Type: `Host`, IP: `1.2.3.4`. Saqlang va Apply qiling.
+2. FW-02 (Backup) ga o'ting va `Firewall -> Aliases` sahifasini yangilang.
+*Natija:* `Test_Sync_Alias` 1 soniya ichida FW-02 da avtomatik paydo bo'lishi kerak!
 
+### 2. State Table (Sessiyalar) Sinovi:
+1. FW-01 da konsol oching: `pfctl -ss | wc -l`
+2. FW-02 da konsol oching: `pfctl -ss | wc -l`
+*Natija:* Ikkala routerda ham ochiq sessiyalar soni bir xil bo'lishi lozim!
 
----
-
-## 🧪 5. Verifikatsiya va Tekshirish (Testing & CLI)
-
-Har bir amaliyot tugagach, quyidagi buyruqlar yordamida natijani qat'iy tekshiring:
-
-**Ikkala routerda ham sessiyalar soni va ro'yxati 100% bir xilligini ko'rish:**
+### 3. Falokat va Zero-Downtime Sinovi (Grand Test):
+1. Mijoz kompyuterida uzluksiz ping yoki SSH ulanishini yoqing:
 ```bash
-pfSense konsolida: pfctl -ss
+ping -t 10.10.10.1
 ```
-
-```bash
-Mijozdan uzluksiz ping yoki SSH ulanishini yoqib qo'yish: ping -t 10.10.10.1
-```
-
-**elektrini o'chirish:**
-```bash
-FW-01 (Master) serverini 'Power Off' qilish
-```
-
-```bash
-FW-02 darhol MASTER ga aylanib, bitta ham ping yo'qolmasdan (0 soniya downtime) aloqa davom etayotganini kuzatish
-```
-
-```bash
-SSH yoki Zoom sessiyasi uzilmasdan saqlanib qolganini tasdiqlash
-```
-
-
-
----
-
-## 🚨 6. Eng Ko'p Uchraydigan Xatolar va Troubleshooting
-
-* ⚠️ **Muammo: XML-RPC 'Authentication failed' xatosi. Yechim: Ikkala routerda ham admin paroli to'g'ri kiritilganini va SYNC interfeysida HTTPS (port 443/8443) ruxsat berilganini tekshiring.**
-* ⚠️ **Muammo: Sessiyalar sinxron emas. Yechim: `pfsync` interfeysi sifatida xato interfeys (masalan LAN) tanlanmaganini tasdiqlang.**
-
-
----
-
-## 🏆 7. Mustaqil Amaliy Topshiriq (Student Challenge / Homework)
-
-> 📝 **Vazifa:** Master server qayta yoqilganda (Power On) CARP boshqaruvini qanday qilib muammosiz qaytarib olishini tekshiring va jarayonni Wireshark da CARP e'lonlari orqali yozib oling.
+2. Boshqa terminalda YouTube yoki Zoom qo'ng'irog'ini ishga tushiring.
+3. **FW-01 (Master) ning elektrini birdaniga o'chiring (Power Off / Pull plug)!**
+4. Mijoz kompyuteridagi ping oynasiga va video qo'ng'iroqqa qarang:
+* **Natija:** Bitta ham ping yo'qolmaydi! Video qo'ng'iroq uzilmaydi! FW-02 soniyaning ulushlarida MASTER ga aylanadi va barcha sessiyalarni o'z zimmasiga oladi.
