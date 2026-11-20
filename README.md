@@ -5,6 +5,23 @@ Ushbu repozitoriy pfSense xavfsizlik devori (firewall), marshrutizator (router) 
 
 ---
 
+> ## 🌐 Endi bu — **Men Tarmoq** ta'lim platformasi
+> Repozitoriy pfSense kursidan tashqari to'liq veb-platformaga aylantirildi: **15 ta yo'nalish** (tarmoq asoslari, Linux,
+> switching, routing, xizmatlar, VPN, pfSense, MikroTik, Cisco, xavfsizlik, monitoring, virtualizatsiya, cloud,
+> avtomatlashtirish, Wi-Fi), testlar, progress va **brauzerda jonli laboratoriyalar** (containerlab).
+>
+> | Papka | Vazifasi |
+> |---|---|
+> | [`web/`](web/) | FastAPI platforma (VPS da) |
+> | [`lab-agent/`](lab-agent/) | Lab orkestratori (home serverda) |
+> | [`courses/`](courses/) | Kurslar (`course.yaml` + Markdown darslar) |
+> | [`labs/`](labs/) | containerlab topologiyalari + avto-tekshiruvlar |
+> | [`deploy/`](deploy/) | VPS / Home / WireGuard konfiguratsiyalari va o'rnatish skriptlari |
+>
+> 📘 Arxitektura va o'rnatish: **[docs/PLATFORM_DEPLOY.md](docs/PLATFORM_DEPLOY.md)**
+
+---
+
 ## 📑 Mundarija
 1. [Loyiha Maqsadi va Metodologiya](#-loyiha-maqsadi-va-metodologiya)
 2. [Laboratoriya Topologiyasi va IP Sxemasi](#-laboratoriya-topologiyasi-va-ip-sxemasi)

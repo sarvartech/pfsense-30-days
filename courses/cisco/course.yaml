@@ -1,0 +1,21 @@
+slug: cisco
+title: Cisco IOS (CCNA yo'li)
+icon: "🏢"
+level: O'rta
+order: 9
+color: "#0284c7"
+status: soon
+tags: [IOS, CCNA, VLAN, OSPF, ACL, EtherChannel]
+description: >
+  CCNA 200-301 dasturiga mos: IOS CLI, VLAN/trunk, STP, EtherChannel, OSPFv2, ACL, NAT, FHRP (HSRP),
+  qurilma xavfsizligi. Lablar Cisco IOL/CML imajlari (litsenziyangiz bo'lsa) yoki ekvivalent FRR topologiyalari bilan.
+modules:
+  - title: IOS asoslari
+    lessons:
+      - {slug: ios-cli, title: "IOS CLI rejimlari, running/startup config", file: lessons/01-cli.md}
+      - {slug: cisco-switching, title: "VLAN, trunk, VTP, EtherChannel", file: lessons/02-switching.md}
+  - title: Marshrutlash va xavfsizlik
+    lessons:
+      - {slug: cisco-ospf, title: OSPFv2 single/multi-area, file: lessons/03-ospf.md}
+      - {slug: acl-nat, title: "Standard/Extended ACL va NAT/PAT", file: lessons/04-acl-nat.md}
+      - {slug: hsrp, title: "FHRP: HSRP va VRRP", file: lessons/05-hsrp.md}

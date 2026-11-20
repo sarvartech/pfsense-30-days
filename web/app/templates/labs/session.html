@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Lab: {{ labdef.title if labdef else lab.topology }}{% endblock %}
+{% block content %}
+<div class="lab-layout" id="lab-root"
+     data-lab="{{ lab.id }}" data-status="{{ lab.status }}" data-term="{{ term_url }}"
+     data-expires="{{ lab.expires_at_utc.isoformat() }}">
+  <aside class="lab-guide">
+    <div class="lab-guide-head">
+      {% if lab.course_slug and lab.lesson_slug %}<a class="crumb" href="/courses/{{ lab.course_slug }}/{{ lab.lesson_slug }}">← Darsga qaytish</a>{% else %}<a class="crumb" href="/labs">← Laboratoriyalar</a>{% endif %}
+      <h1>{{ labdef.title if labdef else lab.topology }}</h1>
+      <div class="lab-status">
+        <span class="pill" id="lab-status">{{ lab.status }}</span>
+        <span class="muted">Qolgan vaqt: <b id="lab-timer">—</b></span>
+      </div>
+    </div>
+    <div class="prose small">{{ readme | safe }}</div>
+    {% if labdef and labdef.checks %}
+    <div class="card checks">
+      <h3>✅ Topshiriqlar</h3>
+      <ul id="check-list">
+        {% for c in labdef.checks %}<li data-id="{{ c.id }}"><span class="mark">○</span> {{ c.title }}</li>{% endfor %}
+      </ul>
+      <button class="btn btn-sm" id="btn-check">Tekshirish</button>
+      <span class="muted" id="check-summary"></span>
+    </div>
+    {% endif %}
+    <form method="post" action="/labs/{{ lab.id }}/stop" onsubmit="return confirm('Labni to\'xtatib, barcha konfiguratsiyani o\'chirasizmi?')">
+      <button class="btn btn-danger btn-sm">■ Labni to'xtatish</button>
+    </form>
+  </aside>
+  <section class="lab-term">
+    <div class="term-placeholder" id="term-wait">
+      <div class="spinner"></div>
+      <p id="term-msg">Laboratoriya tayyorlanmoqda… (birinchi marta image yuklanishi bir necha daqiqa olishi mumkin)</p>
+    </div>
+    <iframe id="term-frame" title="Lab terminal" hidden></iframe>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/lab.js"></script>{% endblock %}

@@ -1,0 +1,11 @@
+name: linux-basics
+topology:
+  nodes:
+    host1:
+      kind: linux
+      image: ghcr.io/hellt/network-multitool
+    host2:
+      kind: linux
+      image: ghcr.io/hellt/network-multitool
+  links:
+    - endpoints: ["host1:eth1", "host2:eth1"]

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="wrap hero-inner">
+    <div>
+      <p class="eyebrow">Tarmoq muhandisligi · O'zbek tilida</p>
+      <h1>Tarmoqni <span class="grad">o'qib emas,</span> qurib o'rganing.</h1>
+      <p class="lead">{{ settings.site_tagline }}. OSI modelidan BGP gacha, Linux tarmog'idan pfSense, MikroTik va Cisco gacha — har bir mavzu jonli laboratoriya bilan.</p>
+      <div class="hero-cta">
+        {% if user %}<a class="btn" href="/dashboard">Davom etish →</a>{% else %}<a class="btn" href="/register">Bepul boshlash →</a>{% endif %}
+        <a class="btn btn-ghost" href="/labs">Laboratoriyalarni ko'rish</a>
+      </div>
+      <div class="stats">
+        <div><b>{{ stats.courses }}</b><span>yo'nalish</span></div>
+        <div><b>{{ stats.lessons }}</b><span>tayyor dars</span></div>
+        <div><b>{{ stats.labs }}</b><span>jonli lab</span></div>
+      </div>
+    </div>
+    <div class="hero-term" aria-hidden="true">
+<pre><span class="c">student@r1:~$</span> vtysh -c "show ip ospf neighbor"
+Neighbor ID  Pri State     Dead Time Address
+2.2.2.2        1 <span class="ok">Full/DR</span>   33.4s     10.0.12.2
+3.3.3.3        1 <span class="ok">Full/DR</span>   35.1s     10.0.13.3
+<span class="c">student@r1:~$</span> ping -c1 3.3.3.3
+64 bytes from 3.3.3.3: icmp_seq=1 ttl=64 time=0.08 ms
+<span class="c">student@r1:~$</span> <span class="cursor">▍</span></pre>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="courses">
+  <div class="section-head">
+    <h2>O'quv yo'nalishlari</h2>
+    <p class="muted">Tavsiya etilgan tartib: chapdan o'ngga, yuqoridan pastga.</p>
+  </div>
+  <div class="grid cards">
+    {% for c in catalog.courses.values() %}
+    <a class="card course-card {% if c.status == 'soon' %}is-soon{% endif %}" href="/courses/{{ c.slug }}" style="--accent: {{ c.color }}">
+      <div class="card-top">
+        <span class="icon">{{ c.icon }}</span>
+        <span class="badge">{{ c.level }}</span>
+      </div>
+      <h3>{{ c.title }}</h3>
+      <p>{{ c.description | truncate(150) }}</p>
+      <div class="card-meta">
+        <span>{{ c.available_lessons | length }}/{{ c.lessons | length }} dars</span>
+        <span>~{{ (c.total_minutes / 60) | round(0, 'ceil') | int }} soat</span>
+        {% if c.status == 'soon' %}<span class="badge badge-soon">Tez orada</span>{% endif %}
+      </div>
+      {% if user and percents[c.slug] %}
+      <div class="progress"><div style="width: {{ percents[c.slug] }}%"></div></div>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="wrap how">
+  <h2>Platforma qanday ishlaydi</h2>
+  <div class="grid three">
+    <div class="card"><h3>📖 Nazariya</h3><p>Har bir dars — chuqur, real korxona misollari bilan yozilgan maqola va diagrammalar.</p></div>
+    <div class="card"><h3>🧪 Jonli lab</h3><p>Bir tugma bilan sizga alohida router/serverlar ko'tariladi va brauzerda terminal ochiladi.</p></div>
+    <div class="card"><h3>✅ Avto-tekshiruv</h3><p>Lab topshiriqlari avtomatik tekshiriladi, testlar va progress kabinetingizda saqlanadi.</p></div>
+  </div>
+</section>
+{% endblock %}

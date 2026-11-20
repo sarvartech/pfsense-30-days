@@ -1,0 +1,17 @@
+name: vlan-switching
+topology:
+  defaults:
+    kind: linux
+    image: ghcr.io/hellt/network-multitool
+  nodes:
+    sw1: {}
+    pc10a:
+      exec: ["ip addr add 192.168.10.11/24 dev eth1"]
+    pc10b:
+      exec: ["ip addr add 192.168.10.12/24 dev eth1"]
+    pc20:
+      exec: ["ip addr add 192.168.10.21/24 dev eth1"]
+  links:
+    - endpoints: ["sw1:eth1", "pc10a:eth1"]
+    - endpoints: ["sw1:eth2", "pc10b:eth1"]
+    - endpoints: ["sw1:eth3", "pc20:eth1"]

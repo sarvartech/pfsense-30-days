@@ -1,0 +1,20 @@
+slug: tarmoq-xizmatlari
+title: Tarmoq xizmatlari
+icon: "🧩"
+level: O'rta
+order: 5
+color: "#0ea5e9"
+tags: [DHCP, DNS, NTP, NAT, HAProxy, Nginx]
+description: >
+  Har bir tarmoq ishlashi uchun zarur xizmatlar: DHCP (Kea), DNS (BIND, Unbound), NTP (chrony),
+  NAT, reverse proxy va load balancing (HAProxy, Nginx), TLS sertifikatlar va ACME.
+modules:
+  - title: Adreslash xizmatlari
+    lessons:
+      - {slug: dhcp, title: "DHCP: DORA jarayoni, relay, Kea server", file: lessons/01-dhcp.md, duration: 40}
+      - {slug: dns, title: "DNS: rekursiv va avtoritativ, BIND va Unbound", file: lessons/02-dns.md, duration: 60}
+      - {slug: ntp, title: "Vaqt sinxronizatsiyasi: NTP, chrony, PTP", file: lessons/03-ntp.md, duration: 30}
+  - title: Ilovalarni yetkazish
+    lessons:
+      - {slug: reverse-proxy, title: "Reverse proxy va load balancing: HAProxy, Nginx", file: lessons/04-proxy.md, duration: 60}
+      - {slug: tls-acme, title: "TLS, PKI va Let's Encrypt (ACME)", file: lessons/05-tls.md, duration: 45}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Kabinet · {{ settings.site_name }}{% endblock %}
+{% block content %}
+<section class="wrap">
+  <div class="section-head">
+    <h1>Salom, {{ user.name }} 👋</h1>
+    <p class="muted">Jami tugallangan darslar: <b>{{ total_done }}</b></p>
+  </div>
+
+  <h2>Mening kurslarim</h2>
+  {% if started %}
+  <div class="grid cards">
+    {% for c, pct in started %}
+    <a class="card course-card" href="/courses/{{ c.slug }}" style="--accent: {{ c.color }}">
+      <div class="card-top"><span class="icon">{{ c.icon }}</span><span class="badge">{{ pct }}%</span></div>
+      <h3>{{ c.title }}</h3>
+      <div class="progress"><div style="width: {{ pct }}%"></div></div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card notice">Hali kurs boshlamadingiz. <a href="/#courses">Kurs tanlang →</a> (tavsiya: <a href="/courses/tarmoq-asoslari">Tarmoq asoslari</a>)</div>
+  {% endif %}
+
+  <div class="grid two">
+    <div class="card">
+      <h2>🧪 Laboratoriyalar</h2>
+      {% if labs %}
+      <table class="table">
+        <tr><th>Lab</th><th>Holat</th><th>Tekshiruv</th><th>Sana</th></tr>
+        {% for l in labs %}
+        <tr>
+          <td>{% if l.is_active %}<a href="/labs/{{ l.id }}">{{ l.topology }}</a>{% else %}{{ l.topology }}{% endif %}</td>
+          <td><span class="pill pill-{{ l.status }}">{{ l.status }}</span></td>
+          <td>{{ l.checks_passed }}/{{ l.checks_total }}</td>
+          <td class="muted">{{ l.created_at.strftime('%d.%m %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% else %}<p class="muted">Hali lab ishga tushirmagansiz.</p>{% endif %}
+    </div>
+    <div class="card">
+      <h2>📝 Oxirgi testlar</h2>
+      {% if attempts %}
+      <table class="table">
+        <tr><th>Dars</th><th>Natija</th><th>Sana</th></tr>
+        {% for a in attempts %}
+        <tr>
+          <td><a href="/courses/{{ a.course_slug }}/{{ a.lesson_slug }}">{{ a.lesson_slug }}</a></td>
+          <td>{{ a.score }}/{{ a.total }}</td>
+          <td class="muted">{{ a.created_at.strftime('%d.%m %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% else %}<p class="muted">Hali test topshirmagansiz.</p>{% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

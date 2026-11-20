@@ -1,0 +1,19 @@
+name: ospf-triangle
+topology:
+  defaults:
+    kind: linux
+    image: quay.io/frrouting/frr:9.1.0
+  nodes:
+    r1:
+      binds: ["daemons:/etc/frr/daemons", "r1.conf:/etc/frr/frr.conf"]
+      exec: ["ip addr add 10.0.12.1/24 dev eth1", "ip addr add 10.0.13.1/24 dev eth2"]
+    r2:
+      binds: ["daemons:/etc/frr/daemons", "r2.conf:/etc/frr/frr.conf"]
+      exec: ["ip addr add 10.0.12.2/24 dev eth1", "ip addr add 10.0.23.2/24 dev eth2"]
+    r3:
+      binds: ["daemons:/etc/frr/daemons", "r3.conf:/etc/frr/frr.conf"]
+      exec: ["ip addr add 10.0.13.3/24 dev eth1", "ip addr add 10.0.23.3/24 dev eth2"]
+  links:
+    - endpoints: ["r1:eth1", "r2:eth1"]
+    - endpoints: ["r1:eth2", "r3:eth1"]
+    - endpoints: ["r2:eth2", "r3:eth2"]

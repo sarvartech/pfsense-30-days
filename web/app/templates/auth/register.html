@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Ro'yxatdan o'tish · {{ settings.site_name }}{% endblock %}
+{% block content %}
+<section class="wrap auth">
+  <form method="post" action="/register" class="card form">
+    <h1>Ro'yxatdan o'tish</h1>
+    <label>Ism<input name="name" value="{{ name or '' }}" required maxlength="120" autocomplete="name"></label>
+    <label>Email<input type="email" name="email" value="{{ email or '' }}" required autocomplete="email"></label>
+    <label>Parol (kamida 8 belgi)<input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+    <label>Parolni takrorlang<input type="password" name="password2" required minlength="8" autocomplete="new-password"></label>
+    <button class="btn">Hisob yaratish</button>
+    <p class="muted">Hisobingiz bormi? <a href="/login">Kirish</a></p>
+  </form>
+</section>
+{% endblock %}

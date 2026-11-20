@@ -1,0 +1,23 @@
+slug: tarmoq-asoslari
+title: Tarmoq asoslari
+icon: "🌐"
+level: Boshlang'ich
+order: 1
+color: "#2563eb"
+tags: [OSI, TCP/IP, IPv4, IPv6, Subnetting, Ethernet]
+description: >
+  Hamma narsaning poydevori: OSI va TCP/IP modellari, Ethernet va ARP, IPv4 adreslash va subnetting,
+  IPv6, TCP/UDP, portlar va paketlarni Wireshark/tcpdump bilan o'qish. Platformadagi har bir kurs shu bilimlarga tayanadi.
+modules:
+  - title: Modellar va qatlamlar
+    lessons:
+      - {slug: osi-tcpip, file: lessons/01-osi-tcpip.md}
+      - {slug: ethernet-arp, file: lessons/02-ethernet-arp.md}
+  - title: IP adreslash
+    lessons:
+      - {slug: ipv4-subnetting, file: lessons/03-ipv4-subnetting.md}
+      - {slug: ipv6-asoslari, title: IPv6 asoslari — SLAAC, link-local, NDP, file: lessons/04-ipv6.md, duration: 40}
+  - title: Transport qatlami
+    lessons:
+      - {slug: tcp-udp, title: "TCP va UDP: 3-way handshake, oynalar, portlar", file: lessons/05-tcp-udp.md, duration: 40}
+      - {slug: paket-tahlili, title: "Wireshark va tcpdump bilan paket tahlili", file: lessons/06-packet-analysis.md, duration: 45}

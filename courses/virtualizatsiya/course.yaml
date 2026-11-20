@@ -1,0 +1,20 @@
+slug: virtualizatsiya
+title: Virtualizatsiya va konteyner tarmog'i
+icon: "📦"
+level: O'rta
+order: 12
+color: "#7c3aed"
+status: soon
+tags: [Proxmox, Docker, Kubernetes, CNI, Open vSwitch]
+description: >
+  Data-markaz tarmog'i: Proxmox VE (Linux bridge, VLAN-aware, SDN), Open vSwitch, Docker tarmoq
+  drayverlari, Kubernetes networking (CNI, Calico/Cilium, Service, Ingress).
+modules:
+  - title: Hypervisor tarmog'i
+    lessons:
+      - {slug: proxmox-network, title: "Proxmox VE: bridge, VLAN-aware, bond, SDN", file: lessons/01-proxmox.md}
+      - {slug: ovs, title: Open vSwitch asoslari, file: lessons/02-ovs.md}
+  - title: Konteynerlar
+    lessons:
+      - {slug: docker-network, title: "Docker: bridge, host, macvlan, overlay", file: lessons/03-docker.md}
+      - {slug: k8s-network, title: "Kubernetes networking: CNI, Service, Ingress, NetworkPolicy", file: lessons/04-k8s.md}

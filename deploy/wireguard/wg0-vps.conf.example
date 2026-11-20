@@ -1,0 +1,11 @@
+# /etc/wireguard/wg0.conf — VPS (public IP)
+# Kalitlar:  umask 077; wg genkey | tee privatekey | wg pubkey > publickey
+[Interface]
+Address = 10.99.0.1/24
+ListenPort = 51820
+PrivateKey = <VPS_PRIVATE_KEY>
+
+[Peer]
+# Home server (PPPoE / CGNAT ortida — endpoint kerak emas, u o'zi ulanadi)
+PublicKey = <HOME_PUBLIC_KEY>
+AllowedIPs = 10.99.0.2/32

@@ -1,0 +1,16 @@
+[Unit]
+Description=Men Tarmoq lab-agent (containerlab orkestratori)
+After=network-online.target docker.service wg-quick@wg0.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/men-tarmoq/agent.env
+WorkingDirectory=/opt/men-tarmoq/lab-agent
+ExecStart=/opt/men-tarmoq/lab-agent/.venv/bin/uvicorn agent.main:app --host ${AGENT_BIND} --port 8090
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
