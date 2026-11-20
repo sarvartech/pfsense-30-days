@@ -2,7 +2,7 @@
 	email {$ACME_EMAIL}
 }
 
-{$DOMAIN} {
+{$SITE_ADDRESS} {
 	encode zstd gzip
 
 	# Lab terminallari: faqat lab egasi (web platforma tekshiradi) → WireGuard → home Traefik → ttyd

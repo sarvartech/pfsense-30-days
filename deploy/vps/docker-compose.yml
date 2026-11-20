@@ -1,12 +1,22 @@
-# VPS (public IP): Caddy (HTTPS) + web platforma + PostgreSQL
+# VPS (public IP): Caddy + web platforma + PostgreSQL
 # Ishga tushirish:  cd deploy/vps && cp .env.example .env && nano .env && docker compose up -d --build
+#
+# Boshqa loyihalar bilan to'qnashmaslik uchun:
+#  * loyiha nomi, konteyner nomlari, tarmoq va volume lar "men-tarmoq" prefiksi bilan alohida;
+#  * portlar alohida faylda: COMPOSE_FILE (.env da) orqali tanlanadi
+#      ports.caddy.yml  — 80/443 bo'sh bo'lsa, Caddy o'zi HTTPS qiladi
+#      ports.proxy.yml  — 80/443 ni boshqa proxy egallagan bo'lsa, faqat 127.0.0.1:8010
+name: men-tarmoq
+
 services:
   caddy:
     image: caddy:2.8
+    container_name: men-tarmoq-caddy
     restart: unless-stopped
-    ports: ["80:80", "443:443", "443:443/udp"]
     environment:
       DOMAIN: ${DOMAIN}
+      # caddy rejimi: DOMAIN (avtomatik HTTPS); proxy rejimi: ":80" (TLS ni tashqi proxy qiladi)
+      SITE_ADDRESS: ${SITE_ADDRESS:-${DOMAIN}}
       ACME_EMAIL: ${ACME_EMAIL}
       HOME_WG_IP: ${HOME_WG_IP:-10.99.0.2}
     volumes:
@@ -17,6 +27,8 @@ services:
 
   web:
     build: ../../web
+    image: men-tarmoq-web:latest
+    container_name: men-tarmoq-web
     restart: unless-stopped
     env_file: .env
     environment:
@@ -35,6 +47,7 @@ services:
 
   db:
     image: postgres:16-alpine
+    container_name: men-tarmoq-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: mentarmoq
@@ -46,6 +59,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+networks:
+  default:
+    name: men-tarmoq
 
 volumes:
   caddy_data:

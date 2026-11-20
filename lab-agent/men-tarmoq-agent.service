@@ -1,6 +1,6 @@
 [Unit]
 Description=Men Tarmoq lab-agent (containerlab orkestratori)
-After=network-online.target docker.service wg-quick@wg0.service
+After=network-online.target docker.service wg-quick@wg-mt.service
 Wants=network-online.target
 Requires=docker.service
 

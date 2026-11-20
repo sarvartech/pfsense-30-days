@@ -1,4 +1,4 @@
-# /etc/wireguard/wg0.conf — Home server (lab VM)
+# /etc/wireguard/wg-mt.conf — Home server (lab VM)
 [Interface]
 Address = 10.99.0.2/24
 PrivateKey = <HOME_PRIVATE_KEY>

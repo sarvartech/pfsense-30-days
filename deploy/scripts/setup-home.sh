@@ -8,6 +8,8 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 [[ "$REPO_DIR" == "/opt/men-tarmoq" ]] || { echo "Repo /opt/men-tarmoq da bo'lishi kerak (hozir: $REPO_DIR)"; exit 1; }
 HOME_WG_IP=10.99.0.2
+WG_IF=wg-mt
+WG_DIR=/etc/wireguard/men-tarmoq
 
 echo "==> Paketlar, Docker, containerlab"
 apt-get update -qq
@@ -16,16 +18,16 @@ command -v docker >/dev/null || curl -fsSL https://get.docker.com | sh
 command -v containerlab >/dev/null || bash -c "$(curl -sL https://get.containerlab.dev)"
 
 echo "==> WireGuard (VPS ga chiquvchi tunnel — CGNAT/PPPoE uchun ishlaydi)"
-install -d -m 700 /etc/wireguard
-[[ -f /etc/wireguard/privatekey ]] || (umask 077; wg genkey > /etc/wireguard/privatekey)
-wg pubkey < /etc/wireguard/privatekey > /etc/wireguard/publickey
-if [[ ! -f /etc/wireguard/wg0.conf ]]; then
+install -d -m 700 "$WG_DIR"
+[[ -f $WG_DIR/privatekey ]] || (umask 077; wg genkey > "$WG_DIR/privatekey")
+wg pubkey < "$WG_DIR/privatekey" > "$WG_DIR/publickey"
+if [[ ! -f /etc/wireguard/$WG_IF.conf ]]; then
   : "${VPS_ENDPOINT:?VPS_ENDPOINT=<ip>:51820 kerak}" "${VPS_PUBKEY:?VPS_PUBKEY kerak}"
   umask 077
-  cat > /etc/wireguard/wg0.conf <<CONF
+  cat > "/etc/wireguard/$WG_IF.conf" <<CONF
 [Interface]
 Address = ${HOME_WG_IP}/24
-PrivateKey = $(cat /etc/wireguard/privatekey)
+PrivateKey = $(cat "$WG_DIR/privatekey")
 MTU = 1412
 
 [Peer]
@@ -35,7 +37,7 @@ AllowedIPs = 10.99.0.1/32
 PersistentKeepalive = 25
 CONF
 fi
-systemctl enable --now wg-quick@wg0
+systemctl enable --now "wg-quick@$WG_IF"
 # Reboot da Docker/agent WireGuard dan oldin ko'tarilsa ham 10.99.0.2 ga bind qila olsin
 echo "net.ipv4.ip_nonlocal_bind = 1" > /etc/sysctl.d/90-men-tarmoq.conf
 sysctl -q --system
@@ -63,7 +65,7 @@ done
 cat <<MSG
 
 ✅ Home lab-server tayyor.
-   Home WireGuard public key : $(cat /etc/wireguard/publickey)   ← VPS ga kiriting
+   Home WireGuard public key : $(cat "$WG_DIR/publickey")   ← VPS ga kiriting
    AGENT_TOKEN               : $(grep ^AGENT_TOKEN= /etc/men-tarmoq/agent.env | cut -d= -f2)   ← VPS .env LAB_AGENT_TOKEN
    Tekshirish: ping 10.99.0.1 ; systemctl status men-tarmoq-agent ; journalctl -u men-tarmoq-agent -f
 MSG

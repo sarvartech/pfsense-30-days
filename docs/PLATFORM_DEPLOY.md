@@ -90,20 +90,32 @@ sequenceDiagram
 
 ## 3. O'rnatish (≈ 30 daqiqa)
 
-### 3.1. VPS
+### 3.1. VPS (boshqa Docker loyihalar bor bo'lsa ham xavfsiz)
 
 ```bash
 sudo git clone https://github.com/sarvartech/pfsense-30-days.git /opt/men-tarmoq
 cd /opt/men-tarmoq
-sudo ./deploy/scripts/setup-vps.sh        # VPS public key ni ko'rsatadi; home key ni so'raydi (hozircha Enter)
+sudo ./deploy/scripts/preflight-vps.sh     # FAQAT O'QIYDI: band portlar, konteynerlar, firewall, WireGuard
+sudo ./deploy/scripts/setup-vps.sh          # MODE avtomatik: 80/443 band → proxy, bo'sh → caddy
 ```
+
+`setup-vps.sh` mavjud loyihalarga tegmaydi:
+
+| Nima | Qanday |
+|---|---|
+| Docker | O'rnatilgan bo'lsa — qayta o'rnatilmaydi, boshqa konteynerlarga tegilmaydi |
+| Compose | Alohida loyiha `men-tarmoq`: konteynerlar `men-tarmoq-*`, tarmoq `men-tarmoq`, volume lar prefiksli |
+| Portlar | `caddy` rejimi: 80/443 (faqat bo'sh bo'lsa). `proxy` rejimi: faqat `127.0.0.1:8010` |
+| Firewall | `ufw enable`/`default deny` qilinmaydi; ufw faol bo'lsa faqat ruxsat qoidasi qo'shiladi |
+| WireGuard | Alohida `wg-mt` interfeysi, UDP 51820 (band bo'lsa `WG_PORT=51821`), mavjud `wg0` ga tegilmaydi |
+| Ishga tushirish | Avtomatik emas — `.env` ni tekshirganingizdan keyin qo'lda |
 
 ### 3.2. Home lab VM
 
 ```bash
 sudo git clone https://github.com/sarvartech/pfsense-30-days.git /opt/men-tarmoq
 cd /opt/men-tarmoq
-sudo VPS_ENDPOINT=<VPS_IP>:51820 VPS_PUBKEY=<VPS_PUBLIC_KEY> ./deploy/scripts/setup-home.sh
+sudo VPS_ENDPOINT=<VPS_IP>:<WG_PORT> VPS_PUBKEY=<VPS_PUBLIC_KEY> ./deploy/scripts/setup-home.sh
 ```
 
 Skript oxirida **Home public key** va **AGENT_TOKEN** chiqadi.
@@ -112,7 +124,7 @@ Skript oxirida **Home public key** va **AGENT_TOKEN** chiqadi.
 
 ```bash
 sudo HOME_PUBKEY=<HOME_PUBLIC_KEY> ./deploy/scripts/setup-vps.sh
-sudo wg show                               # "latest handshake" bo'lishi kerak
+sudo wg show wg-mt                               # "latest handshake" bo'lishi kerak
 ping -c2 10.99.0.2
 
 sudo nano deploy/vps/.env                  # DOMAIN, ACME_EMAIL, ADMIN_EMAILS, LAB_AGENT_TOKEN=<AGENT_TOKEN>
@@ -131,6 +143,41 @@ Brauzerda `https://DOMAIN` ni oching → `ADMIN_EMAILS` dagi email bilan ro'yxat
 | Traefik | VPS: `curl -I http://10.99.0.2:8088/term/x/` | `404` (Traefik javob beryapti) |
 | Platforma | `https://DOMAIN/healthz` | `{"ok":true}` |
 | Lab | Sayt → Laboratoriyalar → *Linux tarmoq asoslari* | Terminal 1–3 daqiqada ochiladi |
+
+### 3.5. Proxy rejimi: mavjud reverse proxy orqali ulash
+
+80/443 ni boshqa loyiha egallagan bo'lsa, platformaning Caddy si faqat `127.0.0.1:8010` da HTTP tinglaydi
+(terminal ruxsat tekshiruvi ham shu Caddy ichida qoladi). Mavjud proxy da faqat bitta qoida qo'shasiz:
+`DOMAIN → http://127.0.0.1:8010`, **Host** sarlavhasi va **WebSocket** saqlangan holda.
+
+**Nginx (hostda o'rnatilgan):**
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name tarmoq.example.uz;
+    # ssl_certificate ... (certbot --nginx -d tarmoq.example.uz)
+
+    location / {
+        proxy_pass http://127.0.0.1:8010;
+        proxy_set_header Host $host;                       # MAJBURIY (CSRF tekshiruvi uchun)
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_http_version 1.1;                            # WebSocket (lab terminal)
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 3600s;
+    }
+}
+```
+
+**Nginx Proxy Manager (yoki konteynerdagi boshqa proxy):** konteyner hostning `127.0.0.1` iga yeta olmaydi,
+shuning uchun `.env` da `PROXY_BIND=172.17.0.1` qo'ying (docker0 IP; faqat lokal Docker konteynerlarga ko'rinadi).
+NPM da: Proxy Host → Domain `tarmoq.example.uz`, Forward `http` / `172.17.0.1` / `8010`,
+✅ *Websockets Support*, SSL → Let's Encrypt.
+
+**Traefik (Docker):** `men-tarmoq` tarmog'ini Traefik ga ulang va `men-tarmoq-caddy` konteyneriga label qo'shing
+yoki file-provider bilan `http://127.0.0.1:8010` ga service yozing.
 
 ---
 
