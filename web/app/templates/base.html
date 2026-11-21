@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ settings.site_name }}{% endblock %}</title>
+  <meta name="description" content="{{ settings.site_tagline }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="/"><span class="brand-dot"></span>{{ settings.site_name }}</a>
+    <nav class="nav">
+      <a href="/#courses">Kurslar</a>
+      <a href="/labs">Laboratoriyalar</a>
+      {% if user %}
+        <a href="/dashboard">Kabinet</a>
+        {% if user.is_admin %}<a href="/admin">Admin</a>{% endif %}
+        <form method="post" action="/logout" class="inline"><button class="link">Chiqish</button></form>
+      {% else %}
+        <a href="/login">Kirish</a>
+        <a class="btn btn-sm" href="/register">Ro'yxatdan o'tish</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+{% if flashes %}
+<div class="wrap flashes">
+  {% for f in flashes %}<div class="flash flash-{{ f.k }}">{{ f.m }}</div>{% endfor %}
+</div>
+{% endif %}
+
+<main>{% block content %}{% endblock %}</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>© {{ settings.site_name }} — tarmoq muhandislari uchun ochiq ta'lim platformasi</span>
+    <span class="muted">Kontent: Markdown · Lablar: containerlab · Tunnel: WireGuard</span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="/static/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

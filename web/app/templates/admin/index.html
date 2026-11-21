@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Admin · {{ settings.site_name }}{% endblock %}
+{% block content %}
+<section class="wrap">
+  <div class="section-head">
+    <h1>Admin panel</h1>
+    <form method="post" action="/admin/reload"><button class="btn btn-sm">↻ Kontentni qayta yuklash</button></form>
+  </div>
+
+  <div class="stats stats-cards">
+    <div class="card"><b>{{ stats.users }}</b><span>foydalanuvchi</span></div>
+    <div class="card"><b>{{ stats.completions }}</b><span>tugallangan dars</span></div>
+    <div class="card"><b>{{ stats.quizzes }}</b><span>test urinishi</span></div>
+    <div class="card"><b>{{ stats.labs }}</b><span>lab sessiya</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Lab server (home server)</h2>
+    {% if not settings.labs_enabled %}<p class="muted">LAB_AGENT_URL / LAB_AGENT_TOKEN o'rnatilmagan.</p>
+    {% elif agent_error %}<div class="flash flash-error">{{ agent_error }}</div>
+    {% elif agent %}
+      <p>Holat: <span class="pill pill-running">online</span> · Faol lablar: <b>{{ agent.active_labs }}</b>/{{ agent.max_labs }} · containerlab: <code>{{ agent.containerlab }}</code></p>
+    {% endif %}
+  </div>
+
+  {% if content_errors %}
+  <div class="card"><h2>⚠️ Kontent xatolari</h2><ul>{% for e in content_errors %}<li><code>{{ e }}</code></li>{% endfor %}</ul></div>
+  {% endif %}
+
+  <div class="card">
+    <h2>Oxirgi lab sessiyalar</h2>
+    <table class="table">
+      <tr><th>ID</th><th>User</th><th>Topologiya</th><th>Holat</th><th>Tekshiruv</th><th>Muddati</th><th></th></tr>
+      {% for l in labs %}
+      <tr>
+        <td><code>{{ l.id }}</code></td><td>{{ l.user_id }}</td><td>{{ l.topology }}</td>
+        <td><span class="pill pill-{{ l.status }}">{{ l.status }}</span></td>
+        <td>{{ l.checks_passed }}/{{ l.checks_total }}</td>
+        <td class="muted">{{ l.expires_at_utc.strftime('%d.%m %H:%M') }} UTC</td>
+        <td>{% if l.is_active %}<form method="post" action="/labs/{{ l.id }}/stop"><button class="btn btn-danger btn-sm">Stop</button></form>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Foydalanuvchilar</h2>
+    <table class="table">
+      <tr><th>ID</th><th>Ism</th><th>Email</th><th>Darslar</th><th>Ro'yxatdan</th></tr>
+      {% for u, cnt in users %}
+      <tr><td>{{ u.id }}</td><td>{{ u.name }}{% if u.is_admin %} <span class="badge">admin</span>{% endif %}</td><td>{{ u.email }}</td><td>{{ cnt }}</td><td class="muted">{{ u.created_at.strftime('%d.%m.%Y') }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</section>
+{% endblock %}

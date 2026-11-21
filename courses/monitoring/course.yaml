@@ -1,0 +1,21 @@
+slug: monitoring
+title: Monitoring va Observability
+icon: "📈"
+level: O'rta
+order: 11
+color: "#f97316"
+status: soon
+tags: [SNMP, Prometheus, Grafana, Zabbix, NetFlow, Syslog]
+description: >
+  Tarmoqni "ko'rish": SNMP va MIB, Prometheus + Grafana, Zabbix, NetFlow/sFlow/IPFIX, markazlashgan
+  syslog (Graylog/Loki) va alerting. NOC dashboard yig'ish bilan yakunlanadi.
+modules:
+  - title: Metrikalar
+    lessons:
+      - {slug: snmp, title: "SNMP v2c/v3, MIB va OID", file: lessons/01-snmp.md}
+      - {slug: prometheus-grafana, title: "Prometheus, snmp_exporter va Grafana", file: lessons/02-prometheus.md}
+      - {slug: zabbix, title: Zabbix bilan tarmoq monitoringi, file: lessons/03-zabbix.md}
+  - title: Oqimlar va loglar
+    lessons:
+      - {slug: netflow, title: "NetFlow/IPFIX va sFlow tahlili", file: lessons/04-netflow.md}
+      - {slug: syslog, title: "Markazlashgan syslog: Graylog va Loki", file: lessons/05-syslog.md}

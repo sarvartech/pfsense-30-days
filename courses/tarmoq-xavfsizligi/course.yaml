@@ -1,0 +1,20 @@
+slug: tarmoq-xavfsizligi
+title: Tarmoq xavfsizligi
+icon: "🕵️"
+level: O'rta / Yuqori
+order: 10
+color: "#dc2626"
+tags: [Nmap, Suricata, Zeek, Firewall, Zero Trust, Hardening]
+description: >
+  Hujumchi va himoyachi ko'zi bilan: razvedka (nmap), L2/L3 hujumlar (ARP spoofing, VLAN hopping),
+  IDS/IPS (Suricata, Zeek), segmentatsiya, Zero Trust va qurilmalarni hardening qilish. Faqat o'z labingizda!
+modules:
+  - title: Razvedka va hujumlar
+    lessons:
+      - {slug: nmap, title: "Nmap: skanerlash turlari va xizmatlarni aniqlash", file: lessons/01-nmap.md}
+      - {slug: l2-attacks, title: "L2 hujumlar: ARP spoofing, MAC flooding, VLAN hopping", file: lessons/02-l2-attacks.md}
+  - title: Aniqlash va himoya
+    lessons:
+      - {slug: suricata, title: "Suricata IDS/IPS: qoidalar va EVE JSON", file: lessons/03-suricata.md}
+      - {slug: zeek, title: "Zeek bilan tarmoq telemetriyasi", file: lessons/04-zeek.md}
+      - {slug: segmentation, title: "Segmentatsiya va Zero Trust arxitektura", file: lessons/05-segmentation.md}

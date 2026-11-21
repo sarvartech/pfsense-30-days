@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ course.title }} · {{ settings.site_name }}{% endblock %}
+{% block content %}
+<section class="course-hero" style="--accent: {{ course.color }}">
+  <div class="wrap">
+    <a class="crumb" href="/#courses">← Barcha kurslar</a>
+    <h1><span class="icon">{{ course.icon }}</span> {{ course.title }}</h1>
+    <p class="lead">{{ course.description }}</p>
+    <div class="chips">
+      {% if course.level %}<span class="badge">{{ course.level }}</span>{% endif %}
+      {% for t in course.tags %}<span class="chip">{{ t }}</span>{% endfor %}
+    </div>
+    <div class="course-actions">
+      {% if resume %}<a class="btn" href="{{ resume.url }}">{% if percent %}Davom ettirish{% else %}Boshlash{% endif %} →</a>{% endif %}
+      {% if user %}
+        <div class="progress-block"><div class="progress"><div style="width: {{ percent }}%"></div></div><span>{{ percent }}% tugallangan</span></div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  {% for m in course.modules %}
+  <div class="module">
+    <h2 class="module-title"><span class="num">{{ loop.index }}</span>{{ m.title }}</h2>
+    <ol class="lesson-list">
+      {% for l in m.lessons %}
+      <li class="{% if (course.slug, l.slug) in done %}done{% endif %} {% if not l.available %}soon{% endif %}">
+        {% if l.available %}<a href="{{ l.url }}">{% else %}<span>{% endif %}
+          <span class="status-dot"></span>
+          <span class="l-title">{{ l.title }}</span>
+          <span class="l-meta">
+            {% if l.lab %}<span class="chip chip-lab">🧪 lab</span>{% endif %}
+            {% if l.quiz %}<span class="chip">📝 test</span>{% endif %}
+            {% if not l.available %}<span class="chip">tez orada</span>{% endif %}
+            <span class="muted">{{ l.duration }} daq</span>
+          </span>
+        {% if l.available %}</a>{% else %}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,22 @@
+# Home server (lab VM ichida): Traefik — /term/<id>/ yo'llarini ttyd konteynerlariga yo'naltiradi.
+# lab-agent o'zi systemd servis sifatida hostda ishlaydi (containerlab hostga to'liq kirish talab qiladi).
+services:
+  traefik:
+    image: traefik:v3.1
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=labterm
+      - --entrypoints.web.address=:8088
+      - --log.level=INFO
+    ports:
+      # Faqat WireGuard interfeysida — internet va uy LAN idan ko'rinmaydi
+      - "${HOME_WG_IP:-10.99.0.2}:8088:8088"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [labterm]
+
+networks:
+  labterm:
+    name: labterm

@@ -1,0 +1,5 @@
+# 80/443 ni boshqa reverse proxy (nginx, Traefik, NPM, ...) egallagan bo'lsa:
+# Caddy faqat localhost da tinglaydi, mavjud proxy DOMAIN → 127.0.0.1:8010 ga uzatadi.
+services:
+  caddy:
+    ports: ["${PROXY_BIND:-127.0.0.1}:${PROXY_PORT:-8010}:80"]

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Kirish · {{ settings.site_name }}{% endblock %}
+{% block content %}
+<section class="wrap auth">
+  <form method="post" action="/login" class="card form">
+    <h1>Kirish</h1>
+    <input type="hidden" name="next" value="{{ next or '' }}">
+    <label>Email<input type="email" name="email" value="{{ email or '' }}" required autofocus autocomplete="email"></label>
+    <label>Parol<input type="password" name="password" required autocomplete="current-password"></label>
+    <button class="btn">Kirish</button>
+    <p class="muted">Hisobingiz yo'qmi? <a href="/register">Ro'yxatdan o'ting</a></p>
+  </form>
+</section>
+{% endblock %}

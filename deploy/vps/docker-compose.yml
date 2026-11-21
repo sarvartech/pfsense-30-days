@@ -1,0 +1,70 @@
+# VPS (public IP): Caddy + web platforma + PostgreSQL
+# Ishga tushirish:  cd deploy/vps && cp .env.example .env && nano .env && docker compose up -d --build
+#
+# Boshqa loyihalar bilan to'qnashmaslik uchun:
+#  * loyiha nomi, konteyner nomlari, tarmoq va volume lar "men-tarmoq" prefiksi bilan alohida;
+#  * portlar alohida faylda: COMPOSE_FILE (.env da) orqali tanlanadi
+#      ports.caddy.yml  — 80/443 bo'sh bo'lsa, Caddy o'zi HTTPS qiladi
+#      ports.proxy.yml  — 80/443 ni boshqa proxy egallagan bo'lsa, faqat 127.0.0.1:8010
+name: men-tarmoq
+
+services:
+  caddy:
+    image: caddy:2.8
+    container_name: men-tarmoq-caddy
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
+      # caddy rejimi: DOMAIN (avtomatik HTTPS); proxy rejimi: ":80" (TLS ni tashqi proxy qiladi)
+      SITE_ADDRESS: ${SITE_ADDRESS:-${DOMAIN}}
+      ACME_EMAIL: ${ACME_EMAIL}
+      HOME_WG_IP: ${HOME_WG_IP:-10.99.0.2}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [web]
+
+  web:
+    build: ../../web
+    image: men-tarmoq-web:latest
+    container_name: men-tarmoq-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://mentarmoq:${POSTGRES_PASSWORD}@db:5432/mentarmoq
+      CONTENT_DIR: /content
+      HTTPS_ONLY: "true"
+    volumes:
+      # Butun repo (courses/, labs/, day-XX/) read-only. Kontent yangilash: git pull + Admin → "Qayta yuklash"
+      - ../..:/content:ro
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+
+  db:
+    image: postgres:16-alpine
+    container_name: men-tarmoq-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mentarmoq
+      POSTGRES_USER: mentarmoq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mentarmoq"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  default:
+    name: men-tarmoq
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pgdata:

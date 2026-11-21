@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Laboratoriyalar · {{ settings.site_name }}{% endblock %}
+{% block content %}
+<section class="wrap">
+  <div class="section-head">
+    <h1>🧪 Jonli laboratoriyalar</h1>
+    <p class="muted">Har bir lab sizga alohida ko'tariladi (containerlab), {{ settings.lab_ttl_minutes }} daqiqadan keyin avtomatik o'chiriladi.</p>
+  </div>
+  {% if not settings.labs_enabled %}
+    <div class="flash flash-error">Lab server hozircha ulanmagan — laboratoriyalarni faqat ko'rish mumkin.</div>
+  {% endif %}
+  {% if active %}
+    <div class="card notice">Sizning faol labingiz: {% for a in active %}<a href="/labs/{{ a.id }}"><code>{{ a.topology }}</code> ({{ a.status }})</a>{% endfor %}</div>
+  {% endif %}
+  <div class="grid cards">
+    {% for lab in catalog.labs.values() %}
+    <div class="card">
+      <div class="card-top"><span class="icon">🧪</span>{% if lab.level %}<span class="badge">{{ lab.level }}</span>{% endif %}</div>
+      <h3>{{ lab.title }}</h3>
+      <p>{{ lab.description }}</p>
+      <div class="card-meta">
+        <span>{{ lab.nodes|length }} tugun</span><span>~{{ lab.duration }} daq</span><span>{{ lab.checks|length }} tekshiruv</span>
+      </div>
+      <div class="chips">{% for t in lab.tags %}<span class="chip">{{ t }}</span>{% endfor %}</div>
+      {% if user %}
+      <form method="post" action="/labs/start">
+        <input type="hidden" name="topology" value="{{ lab.slug }}">
+        <button class="btn btn-sm" {% if not settings.labs_enabled or active %}disabled{% endif %}>Ishga tushirish ▶</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

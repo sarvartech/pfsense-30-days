@@ -1,0 +1,22 @@
+slug: switching
+title: Kommutatsiya (Switching)
+icon: "🔀"
+level: Boshlang'ich / O'rta
+order: 3
+color: "#8b5cf6"
+tags: [VLAN, 802.1Q, STP, LACP, MAC]
+description: >
+  L2 dunyosi: switch qanday o'rganadi, VLAN va trunk, inter-VLAN routing, Spanning Tree (STP/RSTP),
+  link aggregation (LACP) va L2 xavfsizlik (port security, DHCP snooping).
+modules:
+  - title: VLAN
+    lessons:
+      - {slug: vlan-8021q, file: lessons/01-vlan.md, lab: vlan-switching}
+      - {slug: inter-vlan-routing, title: "Inter-VLAN routing: router-on-a-stick va L3 switch", file: lessons/02-inter-vlan.md, duration: 40}
+  - title: Barqarorlik
+    lessons:
+      - {slug: stp, title: "Spanning Tree (STP/RSTP/MSTP): halqalardan himoya", file: lessons/03-stp.md, duration: 50}
+      - {slug: lacp, title: LACP / 802.3ad — kanallarni birlashtirish, file: lessons/04-lacp.md, duration: 35}
+  - title: L2 xavfsizlik
+    lessons:
+      - {slug: l2-security, title: "Port security, DHCP snooping, Dynamic ARP Inspection", file: lessons/05-l2-security.md, duration: 45}

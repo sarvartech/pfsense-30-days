@@ -23,3 +23,10 @@ Thumbs.db
 *.ovpn
 secrets/
 .env
+
+# Platform
+web/data/
+**/__pycache__/
+.pytest_cache/
+.venv/
+deploy/vps/.env

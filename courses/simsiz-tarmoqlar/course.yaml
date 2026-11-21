@@ -1,0 +1,17 @@
+slug: simsiz-tarmoqlar
+title: Simsiz tarmoqlar (Wi-Fi)
+icon: "📶"
+level: O'rta
+order: 15
+color: "#db2777"
+status: soon
+tags: [802.11ax, WPA3, RADIUS, Roaming, Site Survey]
+description: >
+  Wi-Fi standartlari (802.11n/ac/ax/be), kanallar va interferensiya, WPA2/WPA3-Enterprise + RADIUS,
+  roaming (802.11r/k/v), controller arxitekturalari va site survey.
+modules:
+  - title: Asoslar
+    lessons:
+      - {slug: wifi-standards, title: "802.11 standartlari, chastota va kanallar", file: lessons/01-standards.md}
+      - {slug: wifi-security, title: "WPA2/WPA3 va 802.1X Enterprise", file: lessons/02-security.md}
+      - {slug: wifi-design, title: "Loyihalash: site survey, roaming, controller", file: lessons/03-design.md}

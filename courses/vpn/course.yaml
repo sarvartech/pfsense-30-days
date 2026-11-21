@@ -1,0 +1,23 @@
+slug: vpn
+title: VPN va tunnellar
+icon: "🔐"
+level: O'rta
+order: 6
+color: "#14b8a6"
+tags: [WireGuard, IPsec, OpenVPN, GRE, VXLAN, Tailscale]
+description: >
+  Kriptografik tunnellar va overlay tarmoqlar: WireGuard, IPsec IKEv2, OpenVPN, GRE/VXLAN,
+  hamda Tailscale/Headscale kabi zero-trust yechimlar. CGNAT ortidagi serverni internetga chiqarish ham shu yerda.
+modules:
+  - title: Zamonaviy VPN
+    lessons:
+      - {slug: wireguard, file: lessons/01-wireguard.md, lab: wireguard-p2p}
+      - {slug: cgnat-tunnel, title: "CGNAT/PPPoE ortidagi serverni VPS orqali internetga chiqarish", file: lessons/02-cgnat.md, duration: 40}
+  - title: Korporativ VPN
+    lessons:
+      - {slug: ipsec-ikev2, title: "IPsec IKEv2: fazalar, SA, strongSwan", file: lessons/03-ipsec.md, duration: 60}
+      - {slug: openvpn, title: "OpenVPN: PKI, TLS-crypt, road warrior", file: lessons/04-openvpn.md, duration: 50}
+  - title: Overlay
+    lessons:
+      - {slug: gre-vxlan, title: "GRE va VXLAN: L2/L3 overlay", file: lessons/05-gre-vxlan.md, duration: 45}
+      - {slug: zero-trust, title: "Zero-trust: Tailscale, Headscale, Netbird", file: lessons/06-zero-trust.md, duration: 40}

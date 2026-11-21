@@ -1,0 +1,30 @@
+title: OSPF uchburchak (FRRouting)
+description: Uchta routerda OSPF area 0 ni sozlab, loopback manzillar orasida to'liq bog'lanishni ta'minlash.
+level: O'rta
+duration: 60
+tags: [OSPF, FRR, dinamik marshrutlash]
+nodes:
+  - {name: r1, shell: vtysh}
+  - {name: r2, shell: vtysh}
+  - {name: r3, shell: vtysh}
+checks:
+  - id: r1-nbr
+    title: r1 da ikkita OSPF qo'shni Full holatida
+    node: r1
+    cmd: vtysh -c "show ip ospf neighbor"
+    expect: '(?s)Full.*Full'
+  - id: r2-nbr
+    title: r2 da ikkita OSPF qo'shni Full holatida
+    node: r2
+    cmd: vtysh -c "show ip ospf neighbor"
+    expect: '(?s)Full.*Full'
+  - id: r1-route-3
+    title: r1 marshrut jadvalida 3.3.3.3/32 OSPF orqali o'rganilgan
+    node: r1
+    cmd: vtysh -c "show ip route 3.3.3.3/32"
+    expect: 'Known via "ospf"'
+  - id: r1-ping-lo
+    title: r1 (1.1.1.1) dan r3 loopback (3.3.3.3) ga ping ishlaydi
+    node: r1
+    cmd: ping -c 2 -W 1 -I 1.1.1.1 3.3.3.3
+    expect: ' 0% packet loss'

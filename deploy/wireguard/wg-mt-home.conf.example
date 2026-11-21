@@ -1,0 +1,13 @@
+# /etc/wireguard/wg-mt.conf — Home server (lab VM)
+[Interface]
+Address = 10.99.0.2/24
+PrivateKey = <HOME_PRIVATE_KEY>
+# PPPoE MTU 1492 − WireGuard overhead 80 = 1412
+MTU = 1412
+
+[Peer]
+PublicKey = <VPS_PUBLIC_KEY>
+Endpoint = <VPS_PUBLIC_IP>:51820
+AllowedIPs = 10.99.0.1/32
+# CGNAT/NAT yozuvini tirik saqlash — majburiy!
+PersistentKeepalive = 25

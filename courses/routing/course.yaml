@@ -1,0 +1,25 @@
+slug: routing
+title: Marshrutlash (Routing)
+icon: "🧭"
+level: O'rta
+order: 4
+color: "#10b981"
+tags: [Static, OSPF, BGP, FRRouting, ECMP, BFD]
+description: >
+  Statik marshrutdan Internet darajasidagi BGP gacha. FRRouting (FRR) da OSPF va BGP ni jonli
+  topologiyalarda qurib, LSDB, AS_PATH, route-map va failover ni amalda o'rganasiz.
+modules:
+  - title: Asoslar
+    lessons:
+      - {slug: static-routing, title: "Marshrut jadvali, longest prefix match, statik marshrutlar", file: lessons/01-static.md, duration: 35}
+  - title: IGP — OSPF
+    lessons:
+      - {slug: ospf, file: lessons/02-ospf.md, lab: ospf-triangle}
+      - {slug: ospf-areas, title: "OSPF multi-area, LSA turlari, stub area", file: lessons/03-ospf-areas.md, duration: 50}
+  - title: EGP — BGP
+    lessons:
+      - {slug: bgp, file: lessons/04-bgp.md, lab: bgp-basic}
+      - {slug: bgp-policy, title: "BGP siyosatlari: prefix-list, route-map, local-pref, MED", file: lessons/05-bgp-policy.md, duration: 60}
+  - title: Yuqori mavjudlik
+    lessons:
+      - {slug: bfd-ecmp, title: "BFD, ECMP va tez konvergensiya", file: lessons/06-bfd-ecmp.md, duration: 40}

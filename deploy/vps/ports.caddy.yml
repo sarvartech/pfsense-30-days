@@ -1,0 +1,4 @@
+# 80/443 bo'sh bo'lganda: Caddy Let's Encrypt bilan o'zi HTTPS qiladi
+services:
+  caddy:
+    ports: ["80:80", "443:443", "443:443/udp"]

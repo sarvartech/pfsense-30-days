@@ -1,0 +1,24 @@
+slug: mikrotik
+title: MikroTik RouterOS
+icon: "📡"
+level: O'rta
+order: 8
+color: "#64748b"
+status: soon
+tags: [RouterOS v7, Winbox, CHR, PPPoE, Hotspot, CAPsMAN]
+description: >
+  O'zbekiston provayderlari va ofislarida eng ko'p uchraydigan platforma. RouterOS v7 asoslari,
+  firewall, PPPoE server/client, Queue, Hotspot, OSPF/BGP va CHR (Cloud Hosted Router) lablari.
+modules:
+  - title: Asoslar
+    lessons:
+      - {slug: routeros-intro, title: "RouterOS v7, Winbox, CLI va xavfsiz boshlang'ich sozlama", file: lessons/01-intro.md}
+      - {slug: mikrotik-firewall, title: "Firewall: filter, NAT, mangle, connection tracking", file: lessons/02-firewall.md}
+  - title: Provayder amaliyoti
+    lessons:
+      - {slug: pppoe, title: "PPPoE server va client: ISP modeli", file: lessons/03-pppoe.md}
+      - {slug: queues, title: "Simple queue, Queue tree, PCQ — tezlik cheklash", file: lessons/04-queues.md}
+      - {slug: hotspot, title: Hotspot va RADIUS (User Manager), file: lessons/05-hotspot.md}
+  - title: Marshrutlash
+    lessons:
+      - {slug: mikrotik-ospf-bgp, title: RouterOS v7 da OSPF va BGP, file: lessons/06-routing.md}

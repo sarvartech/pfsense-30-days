@@ -1,0 +1,23 @@
+slug: linux-tarmoq
+title: Linux tarmoq muhandisligi
+icon: "🐧"
+level: Boshlang'ich / O'rta
+order: 2
+color: "#f59e0b"
+tags: [iproute2, netns, bridge, nftables, systemd-networkd, tcpdump]
+description: >
+  Zamonaviy tarmoq qurilmalarining aksariyati Linux. iproute2, network namespace, bridge, veth, marshrut
+  jadvallari, policy routing, nftables firewall va NAT — hammasi jonli Linux labda.
+modules:
+  - title: Asosiy vositalar
+    lessons:
+      - {slug: iproute2, file: lessons/01-iproute2.md, lab: linux-basics}
+      - {slug: network-namespaces, title: "Network namespace va veth: konteyner tarmog'i ichidan", file: lessons/02-netns.md, duration: 45}
+  - title: Firewall va NAT
+    lessons:
+      - {slug: nftables, title: nftables — zamonaviy Linux firewall, file: lessons/03-nftables.md, duration: 60}
+      - {slug: linux-nat, title: "Linux router: IP forwarding, SNAT/DNAT, conntrack", file: lessons/04-nat.md, duration: 50}
+  - title: Ilg'or mavzular
+    lessons:
+      - {slug: policy-routing, title: Policy-based routing va bir nechta marshrut jadvallari, file: lessons/05-policy-routing.md, duration: 45}
+      - {slug: linux-tc, title: "tc: trafikni shakllantirish va QoS", file: lessons/06-tc.md, duration: 45}

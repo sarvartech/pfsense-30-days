@@ -1,0 +1,25 @@
+name: bgp-basic
+topology:
+  nodes:
+    r1:
+      kind: linux
+      image: quay.io/frrouting/frr:9.1.0
+      binds: ["daemons:/etc/frr/daemons", "r1.conf:/etc/frr/frr.conf"]
+      exec: ["ip addr add 172.16.0.1/30 dev eth1", "ip addr add 10.1.0.1/24 dev eth2"]
+    r2:
+      kind: linux
+      image: quay.io/frrouting/frr:9.1.0
+      binds: ["daemons:/etc/frr/daemons", "r2.conf:/etc/frr/frr.conf"]
+      exec: ["ip addr add 172.16.0.2/30 dev eth1", "ip addr add 10.2.0.1/24 dev eth2"]
+    pc1:
+      kind: linux
+      image: ghcr.io/hellt/network-multitool
+      exec: ["ip addr add 10.1.0.10/24 dev eth1", "ip route replace 10.0.0.0/8 via 10.1.0.1"]
+    pc2:
+      kind: linux
+      image: ghcr.io/hellt/network-multitool
+      exec: ["ip addr add 10.2.0.10/24 dev eth1", "ip route replace 10.0.0.0/8 via 10.2.0.1"]
+  links:
+    - endpoints: ["r1:eth1", "r2:eth1"]
+    - endpoints: ["r1:eth2", "pc1:eth1"]
+    - endpoints: ["r2:eth2", "pc2:eth1"]

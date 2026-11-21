@@ -1,0 +1,19 @@
+slug: cloud
+title: Cloud tarmoqlari
+icon: "☁️"
+level: O'rta / Yuqori
+order: 13
+color: "#0891b2"
+status: soon
+tags: [AWS VPC, GCP, Hybrid, Transit Gateway, Site-to-Site]
+description: >
+  AWS VPC, subnet, route table, Security Group vs NACL, NAT Gateway, Transit Gateway; GCP VPC;
+  on-premise ↔ cloud gibrid ulanish (IPsec/BGP). pfSense kursi 28–30-kunlari bilan to'ldiriladi.
+modules:
+  - title: AWS
+    lessons:
+      - {slug: aws-vpc, title: "AWS VPC anatomiyasi: subnet, IGW, NAT GW, route table", file: lessons/01-aws-vpc.md}
+      - {slug: aws-security, title: "Security Group vs NACL, VPC Flow Logs", file: lessons/02-aws-sec.md}
+  - title: Gibrid
+    lessons:
+      - {slug: hybrid-vpn, title: "Site-to-Site VPN va BGP bilan gibrid tarmoq", file: lessons/03-hybrid.md}

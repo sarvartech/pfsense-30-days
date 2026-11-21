@@ -1,0 +1,21 @@
+slug: avtomatlashtirish
+title: Tarmoq avtomatlashtirish (NetDevOps)
+icon: "🤖"
+level: Yuqori
+order: 14
+color: "#16a34a"
+status: soon
+tags: [Python, Netmiko, NAPALM, Ansible, NetBox, GitOps]
+description: >
+  Qo'lda CLI dan kod sifatidagi tarmoqqa: Python (Netmiko, NAPALM, Scrapli), Ansible, Jinja2 shablonlar,
+  NetBox source-of-truth, containerlab + CI bilan konfiguratsiyani avtomatik test qilish.
+modules:
+  - title: Python
+    lessons:
+      - {slug: python-netmiko, title: "Python + Netmiko: ko'p qurilmaga buyruq yuborish", file: lessons/01-netmiko.md}
+      - {slug: napalm, title: "NAPALM va Scrapli: vendorlararo abstraksiya", file: lessons/02-napalm.md}
+  - title: IaC
+    lessons:
+      - {slug: ansible-network, title: "Ansible bilan tarmoq konfiguratsiyasi", file: lessons/03-ansible.md}
+      - {slug: netbox, title: NetBox — source of truth, file: lessons/04-netbox.md}
+      - {slug: netdevops-ci, title: "containerlab + GitHub Actions: tarmoq uchun CI", file: lessons/05-ci.md}

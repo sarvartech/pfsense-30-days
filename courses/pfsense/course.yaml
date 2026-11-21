@@ -1,0 +1,295 @@
+# Avtomatik yaratilgan: mavjud day-XX/lecture.md va lab.md fayllaridan.
+slug: pfsense
+title: pfSense 30 kunlik Production Mastery
+icon: 🛡️
+level: O'rta / Yuqori
+order: 7
+color: '#e11d48'
+tags:
+- pfSense
+- FreeBSD
+- Firewall
+- VPN
+- HA/CARP
+- Cloud
+description: 'pfSense firewall/router ni noldan Production darajasigacha: VLAN, NAT, Multi-WAN, OSPF/BGP, OpenVPN/IPsec/WireGuard, Suricata, CARP HA, HAProxy va AWS/GCP ga deploy. Har bir kun — ma''ruza
+  + hardware/virtual lab.'
+modules:
+- title: '1-Hafta: Baza va Virtualizatsiya'
+  lessons:
+  - slug: kun-01
+    title: '1-kun: pfSense va FreeBSD Arxitekturasi, Dual Lab (Hardware & Virtual) Muhitini Qurish'
+    file: ../../day-01/lecture.md
+    duration: 45
+  - slug: kun-01-lab
+    title: '1-kun lab: pfSense va FreeBSD Arxitekturasi, Dual Lab (Hardware & Virtual) Muhitini Qurish'
+    file: ../../day-01/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-02
+    title: '2-kun: O''rnatish, ZFS Fayl Tizimi, Konsol Menyusi va Production Hardening'
+    file: ../../day-02/lecture.md
+    duration: 45
+  - slug: kun-02-lab
+    title: '2-kun lab: O''rnatish, ZFS Fayl Tizimi, Konsol Menyusi va Production Hardening'
+    file: ../../day-02/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-03
+    title: '3-kun: DHCP Server, Static Mappings, DHCP Options (PXE/NTP) va pfSense ni Markaziy NTP Server Qilish'
+    file: ../../day-03/lecture.md
+    duration: 45
+  - slug: kun-03-lab
+    title: '3-kun lab: DHCP Server, Static Mappings, DHCP Options (PXE/NTP) va pfSense ni Markaziy NTP Server Qilish'
+    file: ../../day-03/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-04
+    title: '4-kun: Unbound DNS chuqur tahlili, DNSSEC, DoT (DNS over TLS) va Split-Horizon DNS'
+    file: ../../day-04/lecture.md
+    duration: 45
+  - slug: kun-04-lab
+    title: '4-kun lab: Unbound DNS chuqur tahlili, DNSSEC, DoT (DNS over TLS) va Split-Horizon DNS'
+    file: ../../day-04/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-05
+    title: '5-kun: 802.1Q VLANlar va Inter-VLAN Marshrutlash (Router-on-a-Stick)'
+    file: ../../day-05/lecture.md
+    duration: 45
+  - slug: kun-05-lab
+    title: '5-kun lab: 802.1Q VLANlar va Inter-VLAN Marshrutlash (Router-on-a-Stick)'
+    file: ../../day-05/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-06
+    title: '6-kun: Firewall Qoidalari, State Table Internals, Floating Rules va Aliases'
+    file: ../../day-06/lecture.md
+    duration: 45
+  - slug: kun-06-lab
+    title: '6-kun lab: Firewall Qoidalari, State Table Internals, Floating Rules va Aliases'
+    file: ../../day-06/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-07
+    title: '7-kun: NAT Masterclass: Port Forwarding, Outbound NAT, 1:1 NAT va NAT Reflection'
+    file: ../../day-07/lecture.md
+    duration: 45
+  - slug: kun-07-lab
+    title: '7-kun lab: NAT Masterclass: Port Forwarding, Outbound NAT, 1:1 NAT va NAT Reflection'
+    file: ../../day-07/lab.md
+    duration: 90
+    kind: lab
+- title: '2-Hafta: Marshrutlash, Multi-WAN va VPN'
+  lessons:
+  - slug: kun-08
+    title: '8-kun: Multi-WAN Masterclass — Dual ISP Failover, Policy-Based Routing va Load Balancing'
+    file: ../../day-08/lecture.md
+    duration: 45
+  - slug: kun-08-lab
+    title: '8-kun lab: Multi-WAN Masterclass — Dual ISP Failover, Policy-Based Routing va Load Balancing'
+    file: ../../day-08/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-09
+    title: '9-kun: Dinamik Marshrutlash: FRR (Free Range Routing) bilan OSPF va BGP'
+    file: ../../day-09/lecture.md
+    duration: 45
+  - slug: kun-09-lab
+    title: '9-kun lab: Dinamik Marshrutlash: FRR (Free Range Routing) bilan OSPF va BGP'
+    file: ../../day-09/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-10
+    title: '10-kun: Enterprise OpenVPN Remote Access (Road Warrior), PKI/CA va TLS-Crypt'
+    file: ../../day-10/lecture.md
+    duration: 45
+  - slug: kun-10-lab
+    title: '10-kun lab: Enterprise OpenVPN Remote Access (Road Warrior), PKI/CA va TLS-Crypt'
+    file: ../../day-10/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-11
+    title: '11-kun: OpenVPN Site-to-Site Tunneling va Client Specific Overrides (CSO)'
+    file: ../../day-11/lecture.md
+    duration: 45
+  - slug: kun-11-lab
+    title: '11-kun lab: OpenVPN Site-to-Site Tunneling va Client Specific Overrides (CSO)'
+    file: ../../day-11/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-12
+    title: '12-kun: WireGuard High-Performance VPN — FreeBSD Kernel Module va Benchmarking'
+    file: ../../day-12/lecture.md
+    duration: 45
+  - slug: kun-12-lab
+    title: '12-kun lab: WireGuard High-Performance VPN — FreeBSD Kernel Module va Benchmarking'
+    file: ../../day-12/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-13
+    title: '13-kun: Enterprise IPsec IKEv2 Site-to-Site va Routed VTI (Virtual Tunnel Interface)'
+    file: ../../day-13/lecture.md
+    duration: 45
+  - slug: kun-13-lab
+    title: '13-kun lab: Enterprise IPsec IKEv2 Site-to-Site va Routed VTI (Virtual Tunnel Interface)'
+    file: ../../day-13/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-14
+    title: '14-kun: Mobile IPsec IKEv2 (Native Windows, macOS va iOS ilovasiz ulanishi)'
+    file: ../../day-14/lecture.md
+    duration: 45
+  - slug: kun-14-lab
+    title: '14-kun lab: Mobile IPsec IKEv2 (Native Windows, macOS va iOS ilovasiz ulanishi)'
+    file: ../../day-14/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-15
+    title: '15-kun: Zero-Trust va Overlay Network: Tailscale Subnet Router'
+    file: ../../day-15/lecture.md
+    duration: 45
+  - slug: kun-15-lab
+    title: '15-kun lab: Zero-Trust va Overlay Network: Tailscale Subnet Router'
+    file: ../../day-15/lab.md
+    duration: 90
+    kind: lab
+- title: '3-Hafta: Kiberxavfsizlik, UTM, QoS va HA'
+  lessons:
+  - slug: kun-16
+    title: '16-kun: pfBlockerNG-devel: DNSBL, GeoIP Country Blocking va Threat Feeds'
+    file: ../../day-16/lecture.md
+    duration: 45
+  - slug: kun-16-lab
+    title: '16-kun lab: pfBlockerNG-devel: DNSBL, GeoIP Country Blocking va Threat Feeds'
+    file: ../../day-16/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-17
+    title: '17-kun: IDS/IPS chuqur tahlili: Suricata Inline Mode (Netmap) vs Legacy Mode'
+    file: ../../day-17/lecture.md
+    duration: 45
+  - slug: kun-17-lab
+    title: '17-kun lab: IDS/IPS chuqur tahlili: Suricata Inline Mode (Netmap) vs Legacy Mode'
+    file: ../../day-17/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-18
+    title: '18-kun: Traffic Shaping va QoS: FQ-CoDel, Limiter va Bufferbloat Eradication'
+    file: ../../day-18/lecture.md
+    duration: 45
+  - slug: kun-18-lab
+    title: '18-kun lab: Traffic Shaping va QoS: FQ-CoDel, Limiter va Bufferbloat Eradication'
+    file: ../../day-18/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-19
+    title: '19-kun: High Availability (CARP) Klasteri — 1-Qism: L2 Sync, Promiscuous Mode, Virtual IPs va Multi-WAN HA'
+    file: ../../day-19/lecture.md
+    duration: 45
+  - slug: kun-19-lab
+    title: '19-kun lab: High Availability (CARP) Klasteri — 1-Qism: L2 Sync, Promiscuous Mode, Virtual IPs va Multi-WAN HA'
+    file: ../../day-19/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-20
+    title: '20-kun: High Availability Klasteri — 2-Qism: pfsync, XML-RPC va Zero-Downtime Failover'
+    file: ../../day-20/lecture.md
+    duration: 45
+  - slug: kun-20-lab
+    title: '20-kun lab: High Availability Klasteri — 2-Qism: pfsync, XML-RPC va Zero-Downtime Failover'
+    file: ../../day-20/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-21
+    title: '21-kun: Enterprise HAProxy Reverse Proxy, SSL Offloading va CARP Integratsiyasi'
+    file: ../../day-21/lecture.md
+    duration: 45
+  - slug: kun-21-lab
+    title: '21-kun lab: Enterprise HAProxy Reverse Proxy, SSL Offloading va CARP Integratsiyasi'
+    file: ../../day-21/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-22
+    title: '22-kun: ACME (Let''s Encrypt) Avtomatizatsiyasi va Cloudflare DNS API'
+    file: ../../day-22/lecture.md
+    duration: 45
+  - slug: kun-22-lab
+    title: '22-kun lab: ACME (Let''s Encrypt) Avtomatizatsiyasi va Cloudflare DNS API'
+    file: ../../day-22/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-23
+    title: '23-kun: Squid Proxy, Kesh Arxitekturasi va ClamAV Antivirus Filtratsiyasi'
+    file: ../../day-23/lecture.md
+    duration: 45
+  - slug: kun-23-lab
+    title: '23-kun lab: Squid Proxy, Kesh Arxitekturasi va ClamAV Antivirus Filtratsiyasi'
+    file: ../../day-23/lab.md
+    duration: 90
+    kind: lab
+- title: '4-Hafta: Monitoring, Hardening va Real Cloud Deploy'
+  lessons:
+  - slug: kun-24
+    title: '24-kun: Centralized Logging: Syslog Export va Graylog / ELK Arxitekturasi'
+    file: ../../day-24/lecture.md
+    duration: 45
+  - slug: kun-24-lab
+    title: '24-kun lab: Centralized Logging: Syslog Export va Graylog / ELK Arxitekturasi'
+    file: ../../day-24/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-25
+    title: '25-kun: Telemetriya va Monitoring: Telegraf + InfluxDB + Grafana NOC Dashboard'
+    file: ../../day-25/lecture.md
+    duration: 45
+  - slug: kun-25-lab
+    title: '25-kun lab: Telemetriya va Monitoring: Telegraf + InfluxDB + Grafana NOC Dashboard'
+    file: ../../day-25/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-26
+    title: '26-kun: Korxona Autentifikatsiyasi: Active Directory / LDAP va RADIUS Integratsiyasi'
+    file: ../../day-26/lecture.md
+    duration: 45
+  - slug: kun-26-lab
+    title: '26-kun lab: Korxona Autentifikatsiyasi: Active Directory / LDAP va RADIUS Integratsiyasi'
+    file: ../../day-26/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-27
+    title: '27-kun: Avtomatlashtirish, AutoConfigBackup (ACB) va 5-Daqiqalik Disaster Recovery Mashqi'
+    file: ../../day-27/lecture.md
+    duration: 45
+  - slug: kun-27-lab
+    title: '27-kun lab: Avtomatlashtirish, AutoConfigBackup (ACB) va 5-Daqiqalik Disaster Recovery Mashqi'
+    file: ../../day-27/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-28
+    title: '28-kun: Cloud Muhitlar Arxitekturasi: AWS VPC, GCP va Linode Tarmoq Asoslari'
+    file: ../../day-28/lecture.md
+    duration: 45
+  - slug: kun-28-lab
+    title: '28-kun lab: Cloud Muhitlar Arxitekturasi: AWS VPC, GCP va Linode Tarmoq Asoslari'
+    file: ../../day-28/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-29
+    title: '29-kun: pfSense Cloud Deployment: AWS / GCP / Linode da Real Instansiya Ko''tarish'
+    file: ../../day-29/lecture.md
+    duration: 45
+  - slug: kun-29-lab
+    title: '29-kun lab: pfSense Cloud Deployment: AWS / GCP / Linode da Real Instansiya Ko''tarish'
+    file: ../../day-29/lab.md
+    duration: 90
+    kind: lab
+  - slug: kun-30
+    title: '30-kun: Katta Final — Hybrid Cloud Production Project: On-Premise to Cloud IPsec/WireGuard'
+    file: ../../day-30/lecture.md
+    duration: 45
+  - slug: kun-30-lab
+    title: '30-kun lab: Katta Final — Hybrid Cloud Production Project: On-Premise to Cloud IPsec/WireGuard'
+    file: ../../day-30/lab.md
+    duration: 90
+    kind: lab
